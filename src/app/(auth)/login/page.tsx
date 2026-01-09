@@ -81,11 +81,11 @@ export default function LoginPage() {
         </Box>
       </Center>
 
-      <Title order={2} ta="center" mb="md">
+      <Title c="gray" order={2} ta="center" mb="md">
         Welcome back
       </Title>
 
-      <Text c="dimmed" size="sm" ta="center" mb="xl">
+      <Text c="gray" size="sm" ta="center" mb="xl">
         Sign in to your account to continue
       </Text>
 

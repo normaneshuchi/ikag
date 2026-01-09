@@ -12,6 +12,7 @@ import {
   Box,
   rem,
   Anchor,
+  useMantineColorScheme,
 } from "@mantine/core";
 import {
   IconMapPin,
@@ -23,6 +24,7 @@ import {
 import Link from "next/link";
 import { GradientButton } from "@/components/ui/GradientButton";
 import { OutlineGradientButton } from "@/components/ui/OutlineGradientButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const features = [
   {
@@ -57,12 +59,24 @@ const services = [
 ];
 
 export default function HomePage() {
+  const { colorScheme } = useMantineColorScheme();
+  const isDark = colorScheme === "dark";
+  
+  const heroBg = isDark 
+    ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)"
+    : "linear-gradient(135deg, #FFF8DC 0%, #FFFAF0 50%, #FFFFF0 100%)";
+
   return (
     <Box>
+      {/* Theme Toggle */}
+      <Box style={{ position: "fixed", top: 16, right: 16, zIndex: 100 }}>
+        <ThemeToggle />
+      </Box>
+
       {/* Hero Section */}
       <Box
         style={{
-          background: "linear-gradient(135deg, #FFF8DC 0%, #FFFAF0 50%, #FFFFF0 100%)",
+          background: heroBg,
           minHeight: "80vh",
           display: "flex",
           alignItems: "center",
@@ -139,7 +153,7 @@ export default function HomePage() {
       </Container>
 
       {/* Features Section */}
-      <Box bg="gray.0" py={rem(80)}>
+      <Box bg={isDark ? "dark.8" : "gray.0"} py={rem(80)}>
         <Container size="lg">
           <Title order={2} ta="center" mb="md">
             Why Choose IKAG?
@@ -207,7 +221,7 @@ export default function HomePage() {
       </Container>
 
       {/* Footer */}
-      <Box bg="gray.9" py={rem(40)}>
+      <Box bg={isDark ? "dark.9" : "gray.9"} py={rem(40)}>
         <Container size="lg">
           <Group justify="space-between" align="center">
             <div>

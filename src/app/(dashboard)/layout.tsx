@@ -31,6 +31,7 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { authClient, useSession, getUserRole, type UserRole } from "@/lib/auth-client";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const navItems: Record<UserRole, Array<{ label: string; href: string; icon: typeof IconHome }>> = {
   user: [
@@ -102,7 +103,9 @@ export default function DashboardLayout({
             </Title>
           </Group>
 
-          <Menu
+          <Group gap="sm">
+            <ThemeToggle />
+            <Menu
             width={200}
             position="bottom-end"
             transitionProps={{ transition: "pop-top-right" }}
@@ -127,7 +130,7 @@ export default function DashboardLayout({
                   >
                     {session?.user?.name?.charAt(0).toUpperCase() || "U"}
                   </Avatar>
-                  <Text fw={500} size="sm" visibleFrom="xs">
+                  <Text fw={500} size="sm" visibleFrom="xs" c="var(--mantine-color-text)">
                     {session?.user?.name || "User"}
                   </Text>
                   <IconChevronDown
@@ -160,6 +163,7 @@ export default function DashboardLayout({
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
+          </Group>
         </Group>
       </AppShell.Header>
 

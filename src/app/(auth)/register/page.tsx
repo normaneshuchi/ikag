@@ -98,7 +98,7 @@ export default function RegisterPage() {
         </Box>
       </Center>
 
-      <Title order={2} ta="center" mb="md">
+      <Title c="gray" order={2} ta="center" mb="md">
         Create an account
       </Title>
 

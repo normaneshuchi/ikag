@@ -204,19 +204,12 @@ export default function ProviderProfilePage() {
       {/* Availability Toggle */}
       {profile && (
         <Paper withBorder p="md" radius="md">
-          <Group justify="space-between">
-            <div>
-              <Text fw={500}>Availability</Text>
-              <Text size="sm" c="dimmed">
-                When available, you&apos;ll appear in search results and can receive requests.
-              </Text>
-            </div>
-            <AvailabilityToggle
-              isAvailable={availability}
-              onChange={handleAvailabilityChange}
-              disabled={availabilityMutation.isPending}
-            />
-          </Group>
+          <Title order={5} mb="xs">Availability Status</Title>
+          <AvailabilityToggle
+            isAvailable={availability}
+            onChange={handleAvailabilityChange}
+            disabled={availabilityMutation.isPending}
+          />
         </Paper>
       )}
 

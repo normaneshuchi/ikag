@@ -20,6 +20,8 @@ import {
   IconClock,
 } from "@tabler/icons-react";
 import { useSession, getUserRole } from "@/lib/auth-client";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 function StatCard({
   title,
@@ -126,6 +128,18 @@ function UserDashboard() {
 }
 
 function ProviderDashboard() {
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["provider", "profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/provider/profile");
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    },
+  });
+
+  const isAvailable = profile?.isAvailable ?? false;
+
   return (
     <>
       <Title order={2} mb="sm">
@@ -164,13 +178,27 @@ function ProviderDashboard() {
 
       <Group mb="md">
         <Title order={3}>Status</Title>
-        <Badge color="red" variant="dot" size="lg">
-          Offline
-        </Badge>
+        {isLoading ? (
+          <Skeleton height={24} width={80} radius="xl" />
+        ) : (
+          <Badge color={isAvailable ? "green" : "red"} variant="dot" size="lg">
+            {isAvailable ? "Online" : "Offline"}
+          </Badge>
+        )}
       </Group>
 
       <Text c="dimmed" size="sm">
-        Toggle your availability from your profile to start receiving requests.
+        {isAvailable ? (
+          "You are visible to customers and can receive requests."
+        ) : (
+          <>
+            Toggle your availability from your{" "}
+            <Text component={Link} href="/dashboard/profile" c="gold" inherit style={{ textDecoration: "underline" }}>
+              profile
+            </Text>{" "}
+            to start receiving requests.
+          </>
+        )}
       </Text>
     </>
   );

@@ -1,7 +1,8 @@
 import { db } from "../lib/db";
 import { users, serviceTypes, providerProfiles, providerServices, sessions, accounts, verifications } from "./schema";
 import { sql } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { scryptAsync } from "@noble/hashes/scrypt.js";
+import { bytesToHex, randomBytes } from "@noble/hashes/utils.js";
 
 const DEMO_PASSWORD = "Demo123!";
 
@@ -25,15 +26,69 @@ const demoServices = [
   { name: "Pet Care", description: "Dog walking, pet sitting, grooming", icon: "🐕" },
 ];
 
-// Demo locations in a metropolitan area
+// Demo locations in Nairobi, Kenya
+// Demo locations - Nairobi suburbs and neighborhoods
 const demoLocations = [
-  { lat: 40.7128, lng: -74.0060 },  // NYC
-  { lat: 40.7580, lng: -73.9855 },  // Midtown
-  { lat: 40.7484, lng: -73.9857 },  // Empire State area
+  // Central
+  { lat: -1.2921, lng: 36.8219, name: "Nairobi CBD" },
+  { lat: -1.2833, lng: 36.8167, name: "Westlands" },
+  { lat: -1.2741, lng: 36.8030, name: "Parklands" },
+  { lat: -1.2697, lng: 36.8127, name: "Highridge" },
+  
+  // West
+  { lat: -1.3031, lng: 36.7073, name: "Karen" },
+  { lat: -1.3167, lng: 36.7667, name: "Langata" },
+  { lat: -1.2856, lng: 36.7589, name: "Lavington" },
+  { lat: -1.2789, lng: 36.7678, name: "Kileleshwa" },
+  { lat: -1.2967, lng: 36.7833, name: "Kilimani" },
+  { lat: -1.2958, lng: 36.7667, name: "Hurlingham" },
+  
+  // South
+  { lat: -1.3226, lng: 36.8431, name: "South B" },
+  { lat: -1.3167, lng: 36.8333, name: "South C" },
+  { lat: -1.3089, lng: 36.8256, name: "Nairobi West" },
+  { lat: -1.3500, lng: 36.8833, name: "Athi River" },
+  
+  // East
+  { lat: -1.2864, lng: 36.8667, name: "Eastleigh" },
+  { lat: -1.2667, lng: 36.8833, name: "Kasarani" },
+  { lat: -1.2500, lng: 36.9000, name: "Ruiru" },
+  { lat: -1.2333, lng: 36.8667, name: "Roysambu" },
+  { lat: -1.2833, lng: 36.8500, name: "Pangani" },
+  { lat: -1.2958, lng: 36.8583, name: "Buruburu" },
+  
+  // North
+  { lat: -1.2333, lng: 36.8167, name: "Gigiri" },
+  { lat: -1.2167, lng: 36.8000, name: "Runda" },
+  { lat: -1.2000, lng: 36.8167, name: "Muthaiga" },
+  { lat: -1.2500, lng: 36.8333, name: "Thika Road" },
+  { lat: -1.1833, lng: 36.9333, name: "Thika" },
+  
+  // Other notable areas
+  { lat: -1.2622, lng: 36.8036, name: "Spring Valley" },
+  { lat: -1.2694, lng: 36.7889, name: "Loresho" },
+  { lat: -1.2583, lng: 36.7750, name: "Kitisuru" },
+  { lat: -1.3000, lng: 36.8167, name: "Upper Hill" },
+  { lat: -1.3167, lng: 36.8167, name: "Mbagathi" },
+  { lat: -1.2833, lng: 36.8333, name: "Ngara" },
+  { lat: -1.2917, lng: 36.8500, name: "Makadara" },
+  { lat: -1.3333, lng: 36.8667, name: "Industrial Area" },
+  { lat: -1.2667, lng: 36.8000, name: "Brookside" },
+  { lat: -1.3167, lng: 36.7500, name: "Rongai" },
 ];
 
+// Hash password using the exact same algorithm as better-auth
+// Uses @noble/hashes/scrypt with config: N=16384, r=16, p=1, dkLen=64
 async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+  const salt = bytesToHex(randomBytes(16));
+  const key = await scryptAsync(password.normalize("NFKC"), salt, {
+    N: 16384,
+    r: 16,
+    p: 1,
+    dkLen: 64,
+    maxmem: 128 * 16384 * 16 * 2,
+  });
+  return `${salt}:${bytesToHex(key)}`;
 }
 
 async function seed() {

@@ -2,7 +2,7 @@
 
 import { Switch, Group, Text, Loader } from "@mantine/core";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AvailabilityToggleProps {
   isAvailable: boolean;
@@ -17,6 +17,11 @@ export function AvailabilityToggle({
 }: AvailabilityToggleProps) {
   const [loading, setLoading] = useState(false);
   const [optimisticValue, setOptimisticValue] = useState(isAvailable);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setOptimisticValue(isAvailable);
+  }, [isAvailable]);
 
   const handleChange = async (checked: boolean) => {
     setOptimisticValue(checked);

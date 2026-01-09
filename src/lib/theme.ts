@@ -1,6 +1,6 @@
 "use client";
 
-import { createTheme, MantineColorsTuple, rem } from "@mantine/core";
+import { createTheme, MantineColorsTuple, rem, DEFAULT_THEME } from "@mantine/core";
 
 // Gold color palette
 const gold: MantineColorsTuple = [
@@ -29,6 +29,19 @@ export const theme = createTheme({
   primaryColor: "gold",
   colors: {
     gold,
+    // Extend dark colors for better contrast
+    dark: [
+      "#C9C9C9", // 0 - lightest text on dark bg
+      "#b8b8b8",
+      "#828282",
+      "#696969",
+      "#424242",
+      "#3b3b3b",
+      "#2e2e2e",
+      "#242424",
+      "#1f1f1f",
+      "#141414", // 9 - darkest bg
+    ],
   },
 
   // Default radius for rounded corners
@@ -94,6 +107,38 @@ export const theme = createTheme({
     Paper: {
       defaultProps: {
         radius: "lg",
+      },
+    },
+    Title: {
+      styles: (theme: any, props: any) => ({
+        root: {
+          // Ensure titles have proper contrast
+          color: props.c ? undefined : "var(--mantine-color-text)",
+        },
+      }),
+    },
+    Text: {
+      styles: (theme: any, props: any) => ({
+        root: {
+          // Ensure text has proper contrast unless explicitly colored
+          color: props.c ? undefined : "var(--mantine-color-text)",
+        },
+      }),
+    },
+    AppShell: {
+      styles: {
+        main: {
+          // Ensure main content area has proper background
+          backgroundColor: "var(--mantine-color-body)",
+        },
+      },
+    },
+    NavLink: {
+      styles: {
+        label: {
+          // Ensure nav labels have proper contrast
+          color: "var(--mantine-color-text)",
+        },
       },
     },
     Modal: {
