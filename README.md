@@ -1,36 +1,168 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IKAG Marketplace
+
+A service marketplace MVP where users can request informal services (gardening, plumbing, cleaning, etc.), providers manage their availability, and admins control service offerings.
+
+## Features
+
+- 🔐 **Authentication** - Email/password login with role-based access (admin, provider, user)
+- 📍 **Location-based** - PostGIS-powered proximity search for nearby providers
+- 📱 **PWA Support** - Installable app with offline capability via IndexedDB caching
+- 🔔 **Real-time Updates** - Server-Sent Events (SSE) for live provider status
+- 🎨 **Gold Theme** - Custom Mantine UI theme with gradient buttons
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Database**: PostgreSQL 16 + PostGIS 3.4
+- **ORM**: Drizzle ORM
+- **UI**: Mantine 8
+- **Auth**: better-auth
+- **PWA**: Serwist
+- **Container**: Podman Compose
+
+## Prerequisites
+
+- Node.js 20+
+- Yarn
+- Podman (or Docker)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install Dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+yarn install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Start the Database
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+podman compose up -d
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This starts PostgreSQL with PostGIS extension on port 5432.
 
-## Learn More
+### 3. Run Migrations
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn db:push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Seed Demo Data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+yarn db:seed
+```
 
-## Deploy on Vercel
+### 5. Start Development Server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+yarn dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+## Demo Accounts
+
+| Email | Password | Role |
+|-------|----------|------|
+| admin@ikag.test | Demo123! | Admin |
+| plumber@ikag.test | Demo123! | Provider (verified) |
+| gardener@ikag.test | Demo123! | Provider (verified) |
+| cleaner@ikag.test | Demo123! | Provider (unverified) |
+| user@ikag.test | Demo123! | User |
+| jane@ikag.test | Demo123! | User |
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `yarn dev` | Start development server |
+| `yarn build` | Build for production |
+| `yarn start` | Start production server |
+| `yarn lint` | Run ESLint |
+| `yarn db:push` | Push schema to database |
+| `yarn db:seed` | Seed demo data |
+| `yarn db:studio` | Open Drizzle Studio |
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── api/               # API routes
+│   ├── dashboard/         # Dashboard pages (protected)
+│   ├── login/             # Auth pages
+│   └── register/
+├── components/            # React components
+│   ├── ui/               # Reusable UI components
+│   └── ...               # Feature components
+├── db/                    # Database
+│   ├── schema/           # Drizzle schema definitions
+│   ├── migrations/       # SQL migrations
+│   └── seed.ts           # Seed script
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utilities and configs
+│   ├── auth.ts           # better-auth server config
+│   ├── auth-client.ts    # Auth client helpers
+│   └── db/               # Database client
+└── providers/            # React context providers
+```
+
+## Role Permissions
+
+### User
+- Browse available services and providers
+- Create service requests
+- View request history
+- Rate completed services
+
+### Provider
+- Manage availability status
+- Set service offerings and rates
+- Accept/decline requests
+- View earnings
+
+### Admin
+- Manage service types
+- Verify providers
+- View all users and requests
+
+## Environment Variables
+
+Create a `.env.local` file:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ikag
+
+# Auth
+BETTER_AUTH_SECRET=your-secret-key-min-32-chars
+BETTER_AUTH_URL=http://localhost:3000
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Deployment
+
+### Build
+
+```bash
+yarn build
+```
+
+### Production
+
+```bash
+yarn start
+```
+
+For production deployment, ensure:
+- PostgreSQL with PostGIS is available
+- Environment variables are set
+- HTTPS is configured for PWA features
+
+## License
+
+MIT
