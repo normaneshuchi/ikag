@@ -1,65 +1,244 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import {
+  Container,
+  Title,
+  Text,
+  Group,
+  Stack,
+  SimpleGrid,
+  Card,
+  ThemeIcon,
+  Box,
+  rem,
+  Anchor,
+} from "@mantine/core";
+import {
+  IconMapPin,
+  IconShieldCheck,
+  IconClock,
+  IconDeviceMobile,
+  IconBriefcase,
+} from "@tabler/icons-react";
+import Link from "next/link";
+import { GradientButton } from "@/components/ui/GradientButton";
+import { OutlineGradientButton } from "@/components/ui/OutlineGradientButton";
+
+const features = [
+  {
+    icon: IconMapPin,
+    title: "Location-Based Matching",
+    description: "Find service providers in your area with our smart proximity search.",
+  },
+  {
+    icon: IconShieldCheck,
+    title: "Verified Providers",
+    description: "All providers are verified to ensure quality and trustworthiness.",
+  },
+  {
+    icon: IconClock,
+    title: "Real-Time Availability",
+    description: "See who's available right now and book instantly.",
+  },
+  {
+    icon: IconDeviceMobile,
+    title: "Works Offline",
+    description: "Access your bookings and provider info even without internet.",
+  },
+];
+
+const services = [
+  { icon: "🔧", name: "Plumbing" },
+  { icon: "🌱", name: "Gardening" },
+  { icon: "🧹", name: "Cleaning" },
+  { icon: "⚡", name: "Electrical" },
+  { icon: "🎨", name: "Painting" },
+  { icon: "🔨", name: "Handyman" },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <Box>
+      {/* Hero Section */}
+      <Box
+        style={{
+          background: "linear-gradient(135deg, #FFF8DC 0%, #FFFAF0 50%, #FFFFF0 100%)",
+          minHeight: "80vh",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <Container size="lg" py={rem(80)}>
+          <Stack align="center" gap="xl">
+            <Title
+              order={1}
+              ta="center"
+              size={rem(56)}
+              style={{
+                background: "linear-gradient(135deg, #FFD700, #FF8C00)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              IKAG Marketplace
+            </Title>
+            <Text
+              size="xl"
+              c="dimmed"
+              ta="center"
+              maw={600}
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              Find trusted local service providers for your everyday needs.
+              From plumbing to gardening, cleaning to handyman services.
+            </Text>
+            <Group mt="lg">
+              <GradientButton
+                component={Link}
+                href="/register"
+                size="lg"
+              >
+                Get Started
+              </GradientButton>
+              <OutlineGradientButton
+                component={Link}
+                href="/login"
+                size="lg"
+              >
+                Sign In
+              </OutlineGradientButton>
+            </Group>
+          </Stack>
+        </Container>
+      </Box>
+
+      {/* Services Section */}
+      <Container size="lg" py={rem(80)}>
+        <Title order={2} ta="center" mb="md">
+          Services Available
+        </Title>
+        <Text c="dimmed" ta="center" maw={600} mx="auto" mb="xl">
+          Browse our wide range of local services
+        </Text>
+        <SimpleGrid cols={{ base: 2, sm: 3, md: 6 }}>
+          {services.map((service) => (
+            <Card
+              key={service.name}
+              withBorder
+              padding="lg"
+              radius="md"
+              ta="center"
+              style={{ cursor: "pointer" }}
+            >
+              <Text size={rem(40)} mb="xs">
+                {service.icon}
+              </Text>
+              <Text fw={500}>{service.name}</Text>
+            </Card>
+          ))}
+        </SimpleGrid>
+      </Container>
+
+      {/* Features Section */}
+      <Box bg="gray.0" py={rem(80)}>
+        <Container size="lg">
+          <Title order={2} ta="center" mb="md">
+            Why Choose IKAG?
+          </Title>
+          <Text c="dimmed" ta="center" maw={600} mx="auto" mb="xl">
+            We make finding and booking local services simple and reliable
+          </Text>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+            {features.map((feature) => (
+              <Card key={feature.title} padding="lg" radius="md">
+                <ThemeIcon
+                  size="xl"
+                  radius="md"
+                  variant="gradient"
+                  gradient={{ from: "yellow.6", to: "orange.5", deg: 135 }}
+                  mb="md"
+                >
+                  <feature.icon size={24} />
+                </ThemeIcon>
+                <Text fw={500} mb="xs">
+                  {feature.title}
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {feature.description}
+                </Text>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* CTA Section */}
+      <Container size="lg" py={rem(80)}>
+        <Card
+          withBorder
+          padding="xl"
+          radius="lg"
+          style={{
+            background: "linear-gradient(135deg, #FFD700, #FF8C00)",
+          }}
+        >
+          <Stack align="center" gap="md">
+            <ThemeIcon size={60} radius="xl" color="white" variant="filled">
+              <IconBriefcase size={32} />
+            </ThemeIcon>
+            <Title order={2} c="white" ta="center">
+              Are you a service provider?
+            </Title>
+            <Text c="white" ta="center" maw={500}>
+              Join IKAG and connect with customers in your area.
+              Set your own schedule and grow your business.
+            </Text>
+            <GradientButton
+              component={Link}
+              href="/register"
+              size="lg"
+              variant="white"
+              color="dark"
+              style={{ background: "white" }}
+            >
+              Join as Provider
+            </GradientButton>
+          </Stack>
+        </Card>
+      </Container>
+
+      {/* Footer */}
+      <Box bg="gray.9" py={rem(40)}>
+        <Container size="lg">
+          <Group justify="space-between" align="center">
+            <div>
+              <Title
+                order={4}
+                style={{
+                  background: "linear-gradient(135deg, #FFD700, #FF8C00)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                IKAG Marketplace
+              </Title>
+              <Text size="sm" c="gray.5">
+                © 2024 IKAG. All rights reserved.
+              </Text>
+            </div>
+            <Group>
+              <Anchor href="#" c="gray.5" size="sm">
+                Terms
+              </Anchor>
+              <Anchor href="#" c="gray.5" size="sm">
+                Privacy
+              </Anchor>
+              <Anchor href="#" c="gray.5" size="sm">
+                Help
+              </Anchor>
+            </Group>
+          </Group>
+        </Container>
+      </Box>
+    </Box>
   );
 }
