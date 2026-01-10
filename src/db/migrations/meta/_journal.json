@@ -15,6 +15,13 @@
       "when": 1767960630895,
       "tag": "0001_ancient_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768039785394,
+      "tag": "0002_woozy_mariko_yashida",
+      "breakpoints": true
     }
   ]
 }

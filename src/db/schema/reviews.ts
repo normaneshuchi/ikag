@@ -29,7 +29,11 @@ export const reviews = pgTable(
       .references(() => providerProfiles.id, { onDelete: "cascade" }),
     rating: integer("rating").notNull(),
     comment: text("comment"),
+    // Provider can respond to reviews
+    providerResponse: text("provider_response"),
+    providerRespondedAt: timestamp("provider_responded_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("reviews_provider_idx").on(table.providerId),

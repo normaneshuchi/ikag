@@ -16,7 +16,9 @@ import {
   IconMapPin,
   IconClock,
   IconCalendarEvent,
+  IconUser,
 } from "@tabler/icons-react";
+import Link from "next/link";
 
 interface ProviderCardProps {
   provider: {
@@ -163,26 +165,35 @@ export function ProviderCard({
         </Group>
       )}
 
-      {/* Spacer to push button to bottom */}
+      {/* Spacer to push buttons to bottom */}
       <div style={{ flex: 1 }} />
 
-      {/* Book Button - always at bottom */}
-      {onBook && provider.isAvailable && (
+      {/* Action Buttons - always at bottom */}
+      <Group gap="xs" mt="md" grow>
         <Button
-          variant="gradient"
-          gradient={{ from: "gold.5", to: "orange.5", deg: 135 }}
-          fullWidth
-          mt="md"
-          leftSection={<IconCalendarEvent size={16} />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onBook();
-          }}
+          component={Link}
+          href={`/dashboard/providers/${provider.id}`}
+          variant="light"
+          color="gold"
+          leftSection={<IconUser size={16} />}
         >
-          Book Now
+          View Profile
         </Button>
-      )}
+        {onBook && provider.isAvailable && (
+          <Button
+            variant="gradient"
+            gradient={{ from: "gold.5", to: "orange.5", deg: 135 }}
+            leftSection={<IconCalendarEvent size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onBook();
+            }}
+          >
+            Book Now
+          </Button>
+        )}
+      </Group>
     </Card>
   );
 }

@@ -27,9 +27,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@mantine/core", "@mantine/hooks", "@tabler/icons-react"],
   },
   
-  // Enable React Compiler for automatic memoization (Next.js 16+)
-  reactCompiler: true,
-  
   // Production optimizations
   poweredByHeader: false,
   compress: true,
