@@ -46,6 +46,14 @@ const nextConfig: NextConfig = {
       fullUrl: process.env.NODE_ENV === "development",
     },
   },
+  
+  // Empty turbopack config to silence the webpack/turbopack mismatch error
+  // Serwist adds webpack config, but we can tell Next.js we acknowledge this
+  turbopack: {},
+  
+  // Use webpack for production builds (required for @serwist/next PWA support)
+  // Turbopack doesn't support serwist yet
+  webpack: (config) => config,
 };
 
 export default withSerwist(nextConfig);
