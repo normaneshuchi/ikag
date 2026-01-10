@@ -3,11 +3,12 @@ import { z } from "zod";
 // Create service request schema
 export const createRequestSchema = z.object({
   serviceTypeId: z.string().uuid("Invalid service type ID"),
+  providerId: z.string().uuid("Invalid provider ID").optional(),
   description: z.string().min(10, "Description must be at least 10 characters"),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   address: z.string().optional(),
-  scheduledAt: z.string().datetime().optional(), // ISO date string
+  scheduledAt: z.string().datetime().optional(),
 });
 
 export type CreateRequestInput = z.infer<typeof createRequestSchema>;

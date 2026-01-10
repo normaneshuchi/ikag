@@ -22,13 +22,30 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  // Opt out of Tailwind since we're using Mantine
-  // But keep it for potential utility classes
+  // Performance optimizations
   experimental: {
     optimizePackageImports: ["@mantine/core", "@mantine/hooks", "@tabler/icons-react"],
   },
-  // Enable Turbopack for Next.js 16
-  turbopack: {},
+  
+  // Enable React Compiler for automatic memoization (Next.js 16+)
+  reactCompiler: true,
+  
+  // Production optimizations
+  poweredByHeader: false,
+  compress: true,
+  
+  // Image optimization
+  images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+  },
+  
+  // Logging for debugging
+  logging: {
+    fetches: {
+      fullUrl: process.env.NODE_ENV === "development",
+    },
+  },
 };
 
 export default withSerwist(nextConfig);

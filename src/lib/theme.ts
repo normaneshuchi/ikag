@@ -88,25 +88,106 @@ export const theme = createTheme({
       defaultProps: {
         radius: "md",
       },
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        input: {
+          backgroundColor: "var(--mantine-color-default)",
+          borderColor: "var(--mantine-color-default-border)",
+          color: "var(--mantine-color-text)",
+          "&::placeholder": {
+            color: "var(--mantine-color-placeholder)",
+          },
+        },
+      },
     },
     PasswordInput: {
       defaultProps: {
         radius: "md",
+      },
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        input: {
+          backgroundColor: "var(--mantine-color-default)",
+          borderColor: "var(--mantine-color-default-border)",
+          color: "var(--mantine-color-text)",
+        },
       },
     },
     Select: {
       defaultProps: {
         radius: "md",
       },
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        input: {
+          backgroundColor: "var(--mantine-color-default)",
+          borderColor: "var(--mantine-color-default-border)",
+          color: "var(--mantine-color-text)",
+          "&::placeholder": {
+            color: "var(--mantine-color-placeholder)",
+          },
+        },
+        dropdown: {
+          backgroundColor: "var(--mantine-color-body)",
+          borderColor: "var(--mantine-color-default-border)",
+        },
+        option: {
+          color: "var(--mantine-color-text)",
+        },
+      },
     },
     Textarea: {
       defaultProps: {
         radius: "md",
       },
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        input: {
+          backgroundColor: "var(--mantine-color-default)",
+          borderColor: "var(--mantine-color-default-border)",
+          color: "var(--mantine-color-text)",
+          "&::placeholder": {
+            color: "var(--mantine-color-placeholder)",
+          },
+        },
+      },
     },
     Paper: {
       defaultProps: {
         radius: "lg",
+      },
+    },
+    Switch: {
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        description: {
+          color: "var(--mantine-color-dimmed)",
+        },
+      },
+    },
+    DateTimePicker: {
+      styles: {
+        label: {
+          color: "var(--mantine-color-text)",
+        },
+        input: {
+          backgroundColor: "var(--mantine-color-default)",
+          borderColor: "var(--mantine-color-default-border)",
+          color: "var(--mantine-color-text)",
+          "&::placeholder": {
+            color: "var(--mantine-color-placeholder)",
+          },
+        },
       },
     },
     Title: {
@@ -144,6 +225,21 @@ export const theme = createTheme({
     Modal: {
       defaultProps: {
         radius: "lg",
+      },
+      styles: {
+        title: {
+          fontWeight: 600,
+          color: "var(--mantine-color-text)",
+        },
+        header: {
+          backgroundColor: "var(--mantine-color-body)",
+        },
+        body: {
+          backgroundColor: "var(--mantine-color-body)",
+        },
+        content: {
+          backgroundColor: "var(--mantine-color-body)",
+        },
       },
     },
     Notification: {

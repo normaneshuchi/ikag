@@ -134,7 +134,7 @@ Create a `.env.local` file:
 
 ```env
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ikag
+DB_POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/ikag
 
 # Auth
 BETTER_AUTH_SECRET=your-secret-key-min-32-chars

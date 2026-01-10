@@ -1,6 +1,5 @@
 "use client";
 
-import { type ElementType } from "react";
 import {
   Card,
   Group,
@@ -10,11 +9,13 @@ import {
   Avatar,
   Rating,
   Tooltip,
+  Button,
 } from "@mantine/core";
 import {
   IconCheck,
   IconMapPin,
   IconClock,
+  IconCalendarEvent,
 } from "@tabler/icons-react";
 
 interface ProviderCardProps {
@@ -28,19 +29,23 @@ interface ProviderCardProps {
     totalReviews?: number;
     isAvailable: boolean;
     verifiedAt?: Date | string | null;
-    distance?: number; // in km
+    distance?: number;
     services?: Array<{
+      id?: string;
+      serviceTypeId?: string;
       name: string;
       hourlyRate?: string | number | null;
     }>;
   };
   onClick?: () => void;
+  onBook?: () => void;
   showDistance?: boolean;
 }
 
 export function ProviderCard({
   provider,
   onClick,
+  onBook,
   showDistance = true,
 }: ProviderCardProps) {
   const isVerified = !!provider.verifiedAt;
@@ -48,32 +53,17 @@ export function ProviderCard({
     ? parseFloat(provider.averageRating) 
     : provider.averageRating || 0;
 
-  const CardComponent: ElementType = onClick ? "button" : "a";
-
   return (
     <Card
       shadow="sm"
       padding="lg"
       radius="lg"
       withBorder
-      component={CardComponent}
-      href={onClick ? undefined : `/provider/${provider.id}`}
-      onClick={onClick}
       style={{
-        cursor: "pointer",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        textDecoration: "none",
-        color: "inherit",
-        textAlign: "left",
-        width: "100%",
-      }}
-      styles={{
-        root: {
-          "&:hover": {
-            transform: "translateY(-2px)",
-            boxShadow: "var(--mantine-shadow-md)",
-          },
-        },
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
       }}
     >
       <Group justify="space-between" wrap="nowrap" align="flex-start">
@@ -162,7 +152,7 @@ export function ProviderCard({
           {provider.services.slice(0, 3).map((service, index) => (
             <Badge key={index} variant="light" color="gold" size="sm">
               {service.name}
-              {service.hourlyRate && ` - $${service.hourlyRate}/hr`}
+              {service.hourlyRate && ` - KSh ${service.hourlyRate}/hr`}
             </Badge>
           ))}
           {provider.services.length > 3 && (
@@ -171,6 +161,27 @@ export function ProviderCard({
             </Badge>
           )}
         </Group>
+      )}
+
+      {/* Spacer to push button to bottom */}
+      <div style={{ flex: 1 }} />
+
+      {/* Book Button - always at bottom */}
+      {onBook && provider.isAvailable && (
+        <Button
+          variant="gradient"
+          gradient={{ from: "gold.5", to: "orange.5", deg: 135 }}
+          fullWidth
+          mt="md"
+          leftSection={<IconCalendarEvent size={16} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onBook();
+          }}
+        >
+          Book Now
+        </Button>
       )}
     </Card>
   );

@@ -1,18 +1,60 @@
 import { db } from "../lib/db";
-import { users, serviceTypes, providerProfiles, providerServices, sessions, accounts, verifications } from "./schema";
+import { users, serviceTypes, providerProfiles, providerServices, sessions, accounts, verifications, serviceRequests } from "./schema";
 import { sql } from "drizzle-orm";
 import { scryptAsync } from "@noble/hashes/scrypt.js";
 import { bytesToHex, randomBytes } from "@noble/hashes/utils.js";
+import { randomUUID } from "crypto";
 
 const DEMO_PASSWORD = "Demo123!";
 
+// Core demo users (admin and regular users)
 const demoUsers = [
   { email: "admin@ikag.test", name: "Admin User", role: "admin" as const },
-  { email: "plumber@ikag.test", name: "John Plumber", role: "provider" as const },
-  { email: "gardener@ikag.test", name: "Sarah Gardner", role: "provider" as const },
-  { email: "cleaner@ikag.test", name: "Mike Cleaner", role: "provider" as const },
   { email: "user@ikag.test", name: "Jane Customer", role: "user" as const },
   { email: "jane@ikag.test", name: "Jane Doe", role: "user" as const },
+];
+
+// Provider templates - will be instantiated in multiple locations
+const providerTemplates = [
+  // Plumbers
+  { firstName: "John", lastName: "Mwangi", specialty: "Plumbing", services: ["Plumbing", "Handyman"], verified: true },
+  { firstName: "Peter", lastName: "Ochieng", specialty: "Plumbing", services: ["Plumbing"], verified: true },
+  { firstName: "David", lastName: "Kamau", specialty: "Plumbing", services: ["Plumbing", "Electrical"], verified: true },
+  
+  // Gardeners
+  { firstName: "Sarah", lastName: "Wanjiku", specialty: "Gardening", services: ["Gardening"], verified: true },
+  { firstName: "Grace", lastName: "Akinyi", specialty: "Gardening", services: ["Gardening", "Handyman"], verified: true },
+  { firstName: "Joseph", lastName: "Kiprop", specialty: "Gardening", services: ["Gardening"], verified: false },
+  
+  // Cleaners
+  { firstName: "Mary", lastName: "Njeri", specialty: "Cleaning", services: ["Cleaning", "Moving"], verified: true },
+  { firstName: "Agnes", lastName: "Wambui", specialty: "Cleaning", services: ["Cleaning"], verified: true },
+  { firstName: "Mike", lastName: "Otieno", specialty: "Cleaning", services: ["Cleaning", "Moving"], verified: false },
+  
+  // Electricians
+  { firstName: "James", lastName: "Kariuki", specialty: "Electrical", services: ["Electrical", "Handyman"], verified: true },
+  { firstName: "Brian", lastName: "Mutua", specialty: "Electrical", services: ["Electrical"], verified: true },
+  { firstName: "Kevin", lastName: "Omondi", specialty: "Electrical", services: ["Electrical", "Plumbing"], verified: true },
+  
+  // Painters
+  { firstName: "Daniel", lastName: "Wafula", specialty: "Painting", services: ["Painting", "Handyman"], verified: true },
+  { firstName: "Samuel", lastName: "Kiptoo", specialty: "Painting", services: ["Painting"], verified: true },
+  { firstName: "Mercy", lastName: "Chebet", specialty: "Painting", services: ["Painting"], verified: false },
+  
+  // Handymen
+  { firstName: "Charles", lastName: "Maina", specialty: "Handyman", services: ["Handyman", "Plumbing", "Electrical"], verified: true },
+  { firstName: "George", lastName: "Njoroge", specialty: "Handyman", services: ["Handyman", "Painting"], verified: true },
+  { firstName: "Francis", lastName: "Kibet", specialty: "Handyman", services: ["Handyman", "Moving"], verified: true },
+  
+  // Movers
+  { firstName: "Patrick", lastName: "Korir", specialty: "Moving", services: ["Moving", "Handyman"], verified: true },
+  { firstName: "Stephen", lastName: "Rotich", specialty: "Moving", services: ["Moving"], verified: true },
+  { firstName: "Alex", lastName: "Ndirangu", specialty: "Moving", services: ["Moving", "Cleaning"], verified: false },
+  
+  // Pet Care
+  { firstName: "Lucy", lastName: "Adhiambo", specialty: "Pet Care", services: ["Pet Care"], verified: true },
+  { firstName: "Faith", lastName: "Moraa", specialty: "Pet Care", services: ["Pet Care"], verified: true },
+  { firstName: "Diana", lastName: "Kemunto", specialty: "Pet Care", services: ["Pet Care"], verified: true },
 ];
 
 const demoServices = [
@@ -95,15 +137,27 @@ async function seed() {
   console.log("🌱 Starting database seed...\n");
 
   try {
-    // Clear existing data
-    console.log("🧹 Clearing existing data...");
-    await db.delete(providerServices);
-    await db.delete(providerProfiles);
-    await db.delete(sessions);
-    await db.delete(accounts);
-    await db.delete(verifications);
-    await db.delete(users);
-    await db.delete(serviceTypes);
+    // Check if data already exists (skip seeding if so)
+    const existingUsers = await db.select().from(users).limit(1);
+    if (existingUsers.length > 0) {
+      console.log("⏭️  Database already seeded, skipping...");
+      console.log("   (Use --force flag to reseed: npx tsx src/db/seed.ts --force)");
+      process.exit(0);
+    }
+
+    const forceReseed = process.argv.includes("--force");
+    if (forceReseed) {
+      // Clear existing data (order matters due to foreign keys)
+      console.log("🧹 Force flag detected, clearing existing data...");
+      await db.delete(serviceRequests);
+      await db.delete(providerServices);
+      await db.delete(providerProfiles);
+      await db.delete(sessions);
+      await db.delete(accounts);
+      await db.delete(verifications);
+      await db.delete(users);
+      await db.delete(serviceTypes);
+    }
 
     // Seed service types
     console.log("📦 Creating service types...");
@@ -132,6 +186,7 @@ async function seed() {
     // Create accounts for each user (for better-auth)
     for (const user of createdUsers) {
       await db.insert(accounts).values({
+        id: randomUUID().replace(/-/g, ""),
         userId: user.id,
         accountId: user.id,
         providerId: "credential",
@@ -140,62 +195,104 @@ async function seed() {
     }
     console.log(`   Created ${createdUsers.length} users`);
 
-    // Create provider profiles
+    // Create provider profiles - 3 providers per location
     console.log("🏪 Creating provider profiles...");
-    const providers = createdUsers.filter((u) => 
-      demoUsers.find((du) => du.email === u.email)?.role === "provider"
-    );
+    const adminUser = createdUsers.find((u) => u.email === "admin@ikag.test");
+    let providerCount = 0;
+    const providerEmails: string[] = [];
 
-    for (let i = 0; i < providers.length; i++) {
-      const provider = providers[i];
-      const location = demoLocations[i % demoLocations.length];
-      const isVerified = provider.email !== "cleaner@ikag.test";
+    // Distribute providers across all locations
+    // Each location gets 3 different service providers
+    for (let locIdx = 0; locIdx < demoLocations.length; locIdx++) {
+      const location = demoLocations[locIdx];
+      
+      // Pick 3 different providers for this location
+      // Rotate through templates to ensure variety
+      const providersForLocation = [
+        providerTemplates[(locIdx * 3) % providerTemplates.length],
+        providerTemplates[(locIdx * 3 + 1) % providerTemplates.length],
+        providerTemplates[(locIdx * 3 + 2) % providerTemplates.length],
+      ];
 
-      // Create profile with PostGIS location
-      const result = await db.execute(sql`
-        INSERT INTO provider_profiles (user_id, bio, location, is_available, verified_at, verified_by)
-        VALUES (
-          ${provider.id},
-          ${`Experienced ${provider.name.split(" ")[1]?.toLowerCase() || "service"} professional with years of experience.`},
-          ST_SetSRID(ST_MakePoint(${location.lng}, ${location.lat}), 4326)::geography,
-          true,
-          ${isVerified ? new Date() : null},
-          ${isVerified ? createdUsers.find((u) => u.email === "admin@ikag.test")?.id || null : null}
-        )
-        RETURNING id
-      `);
-      const profile = (result as { rows: { id: string }[] }).rows[0];
+      for (let pIdx = 0; pIdx < providersForLocation.length; pIdx++) {
+        const template = providersForLocation[pIdx];
+        const providerEmail = `${template.firstName.toLowerCase()}.${template.lastName.toLowerCase()}.${location.name.toLowerCase().replace(/\s+/g, "")}@ikag.test`;
+        const providerName = `${template.firstName} ${template.lastName}`;
 
-      // Assign services based on provider specialty
-      let serviceNames: string[] = [];
-      if (provider.email === "plumber@ikag.test") {
-        serviceNames = ["Plumbing", "Handyman"];
-      } else if (provider.email === "gardener@ikag.test") {
-        serviceNames = ["Gardening", "Handyman"];
-      } else if (provider.email === "cleaner@ikag.test") {
-        serviceNames = ["Cleaning", "Moving"];
-      }
+        // Create user
+        const [providerUser] = await db
+          .insert(users)
+          .values({
+            email: providerEmail,
+            name: providerName,
+            role: "provider",
+            emailVerified: true,
+          })
+          .returning();
 
-      const matchingServices = createdServices.filter((s) => serviceNames.includes(s.name));
-      for (const service of matchingServices) {
-        await db.insert(providerServices).values({
-          providerId: profile.id,
-          serviceTypeId: service.id,
+        // Create account for the provider
+        await db.insert(accounts).values({
+          id: randomUUID().replace(/-/g, ""),
+          userId: providerUser.id,
+          accountId: providerUser.id,
+          providerId: "credential",
+          password: hashedPassword,
         });
+
+        // Add slight random offset to location to spread providers within the area
+        const latOffset = (Math.random() - 0.5) * 0.01; // ~1km variation
+        const lngOffset = (Math.random() - 0.5) * 0.01;
+
+        // Create profile with PostGIS location
+        const result = await db.execute(sql`
+          INSERT INTO provider_profiles (user_id, bio, location, address, is_available, verified_at, verified_by, years_of_experience, service_radius)
+          VALUES (
+            ${providerUser.id},
+            ${`Experienced ${template.specialty.toLowerCase()} professional serving the ${location.name} area. Quality work guaranteed.`},
+            ST_SetSRID(ST_MakePoint(${location.lng + lngOffset}, ${location.lat + latOffset}), 4326)::geography,
+            ${`${location.name}, Nairobi, Kenya`},
+            ${Math.random() > 0.2},
+            ${template.verified ? new Date() : null},
+            ${template.verified ? adminUser?.id || null : null},
+            ${Math.floor(Math.random() * 10) + 1},
+            ${5000 + Math.floor(Math.random() * 10000)}
+          )
+          RETURNING id
+        `);
+        const profile = (result as unknown as { rows: { id: string }[] }).rows[0];
+
+        // Assign services based on template
+        const matchingServices = createdServices.filter((s) => template.services.includes(s.name));
+        for (const service of matchingServices) {
+          const hourlyRate = 500 + Math.floor(Math.random() * 2000); // KSh 500-2500/hr
+          await db.insert(providerServices).values({
+            providerId: profile.id,
+            serviceTypeId: service.id,
+            hourlyRate: hourlyRate.toString(),
+          });
+        }
+
+        providerCount++;
+        providerEmails.push(providerEmail);
       }
     }
-    console.log(`   Created ${providers.length} provider profiles`);
+    console.log(`   Created ${providerCount} provider profiles across ${demoLocations.length} locations`);
 
     console.log("\n✅ Seed completed successfully!\n");
     console.log("Demo accounts:");
-    console.log("─".repeat(50));
-    console.log("| Email                    | Password   | Role     |");
-    console.log("─".repeat(50));
+    console.log("─".repeat(60));
+    console.log("| Email                              | Password   | Role     |");
+    console.log("─".repeat(60));
     for (const user of demoUsers) {
-      console.log(`| ${user.email.padEnd(24)} | ${DEMO_PASSWORD.padEnd(10)} | ${user.role.padEnd(8)} |`);
+      console.log(`| ${user.email.padEnd(34)} | ${DEMO_PASSWORD.padEnd(10)} | ${user.role.padEnd(8)} |`);
     }
-    console.log("─".repeat(50));
-    console.log("\nNote: cleaner@ikag.test is an unverified provider");
+    console.log("─".repeat(60));
+    console.log(`\nPlus ${providerCount} provider accounts (email format: firstname.lastname.location@ikag.test)`);
+    console.log("Example provider emails:");
+    providerEmails.slice(0, 5).forEach(email => console.log(`  - ${email}`));
+    console.log(`  ... and ${providerCount - 5} more`);
+    console.log(`\nAll providers use password: ${DEMO_PASSWORD}`);
+    console.log(`Note: ~20% of providers are set as unavailable, ~12% are unverified`);
   } catch (error) {
     console.error("❌ Seed failed:", error);
     process.exit(1);

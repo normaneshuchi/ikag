@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Title,
   Text,
@@ -16,11 +16,14 @@ import {
   Alert,
   TextInput,
   Button,
+  Switch,
 } from "@mantine/core";
 import { IconMapPin, IconAlertCircle, IconSearch, IconCurrentLocation } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { ProviderCard } from "@/components/ProviderCard";
+import { BookingModal } from "@/components/BookingModal";
 import { useProviderStream } from "@/hooks/useProviderStream";
+import { getUserRole, useSession } from "@/lib/auth-client";
 
 interface ServiceType {
   id: string;
@@ -39,6 +42,7 @@ interface Provider {
   distance: number;
   services: {
     id: string;
+    serviceTypeId: string;
     name: string;
     hourlyRate: string | null;
   }[];
@@ -68,10 +72,20 @@ async function fetchProviders(params: {
 }
 
 export default function FindProvidersPage() {
+  const { data: session } = useSession();
+  const role = getUserRole(session?.user);
+  const isUser = role === "user";
+
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [serviceTypeId, setServiceTypeId] = useState<string | null>(null);
   const [radiusKm, setRadiusKm] = useState(10);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [availableOnly, setAvailableOnly] = useState(true);
+
+  // Booking modal state
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
 
   // Subscribe to real-time updates
   const { isConnected } = useProviderStream();
@@ -97,6 +111,21 @@ export default function FindProvidersPage() {
     enabled: !!location,
   });
 
+  // Filter providers based on local filters
+  const filteredProviders = providers.filter((p) => {
+    if (verifiedOnly && !p.verifiedAt) return false;
+    if (availableOnly && !p.isAvailable) return false;
+    return true;
+  });
+
+  // Auto-get location on mount
+  useEffect(() => {
+    if (!location && navigator.geolocation) {
+      getCurrentLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       return;
@@ -104,11 +133,27 @@ export default function FindProvidersPage() {
 
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Try to get address from coordinates (reverse geocoding)
+        let address = "Current Location";
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            address = data.display_name?.split(",").slice(0, 3).join(",") || "Current Location";
+          }
+        } catch {
+          // Fallback to "Current Location" if geocoding fails
+        }
+
         setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          address: "Current Location",
+          lat: latitude,
+          lng: longitude,
+          address,
         });
         setIsGettingLocation(false);
       },
@@ -116,6 +161,11 @@ export default function FindProvidersPage() {
         setIsGettingLocation(false);
       }
     );
+  };
+
+  const handleBookProvider = (provider: Provider) => {
+    setSelectedProvider(provider);
+    setBookingModalOpen(true);
   };
 
   return (
@@ -155,46 +205,61 @@ export default function FindProvidersPage() {
           </Group>
 
           {location && (
-            <Group align="flex-end" gap="md" grow>
-              <Select
-                label="Service Type"
-                placeholder="All services"
-                clearable
-                leftSection={<IconSearch size={16} />}
-                data={serviceTypes.map((s) => ({
-                  value: s.id,
-                  label: `${s.icon || ""} ${s.name}`.trim(),
-                }))}
-                value={serviceTypeId}
-                onChange={setServiceTypeId}
-              />
-
-              <div style={{ flex: 1 }}>
-                <Text size="sm" fw={500} mb="xs">
-                  Search Radius: {radiusKm} km
-                </Text>
-                <Slider
-                  value={radiusKm}
-                  onChange={setRadiusKm}
-                  min={1}
-                  max={50}
-                  marks={[
-                    { value: 1, label: "1km" },
-                    { value: 25, label: "25km" },
-                    { value: 50, label: "50km" },
-                  ]}
+            <>
+              <Group align="flex-end" gap="md" grow>
+                <Select
+                  label="Service Type"
+                  placeholder="All services"
+                  clearable
+                  leftSection={<IconSearch size={16} />}
+                  data={serviceTypes.map((s) => ({
+                    value: s.id,
+                    label: `${s.icon || ""} ${s.name}`.trim(),
+                  }))}
+                  value={serviceTypeId}
+                  onChange={setServiceTypeId}
                 />
-              </div>
-            </Group>
+
+                <div style={{ flex: 1 }}>
+                  <Text size="sm" fw={500} mb="xs">
+                    Search Radius: {radiusKm} km
+                  </Text>
+                  <Slider
+                    value={radiusKm}
+                    onChange={setRadiusKm}
+                    min={1}
+                    max={50}
+                    marks={[
+                      { value: 1, label: "1km" },
+                      { value: 25, label: "25km" },
+                      { value: 50, label: "50km" },
+                    ]}
+                  />
+                </div>
+              </Group>
+
+              <Group>
+                <Switch
+                  label="Verified only"
+                  checked={verifiedOnly}
+                  onChange={(e) => setVerifiedOnly(e.currentTarget.checked)}
+                />
+                <Switch
+                  label="Available now"
+                  checked={availableOnly}
+                  onChange={(e) => setAvailableOnly(e.currentTarget.checked)}
+                />
+              </Group>
+            </>
           )}
         </Stack>
       </Paper>
 
-      {!location && (
+      {!location && !isGettingLocation && (
         <Center py="xl">
           <Stack align="center" gap="xs">
             <IconMapPin size={48} color="var(--mantine-color-gray-5)" />
-            <Text c="dimmed">Set your location to find nearby providers</Text>
+            <Text c="dimmed">Getting your location...</Text>
           </Stack>
         </Center>
       )}
@@ -217,19 +282,19 @@ export default function FindProvidersPage() {
             <IconSearch size={48} color="var(--mantine-color-gray-5)" />
             <Text c="dimmed">No providers found in this area</Text>
             <Text c="dimmed" size="sm">
-              Try increasing the search radius
+              Try increasing the search radius or adjusting filters
             </Text>
           </Stack>
         </Center>
       )}
 
-      {location && !isLoading && providers.length > 0 && (
+      {location && !isLoading && filteredProviders.length > 0 && (
         <>
           <Text c="dimmed" size="sm">
-            Found {providers.length} provider{providers.length !== 1 ? "s" : ""} within {radiusKm}km
+            Found {filteredProviders.length} provider{filteredProviders.length !== 1 ? "s" : ""} within {radiusKm}km
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
-            {providers.map((provider) => (
+            {filteredProviders.map((provider) => (
               <ProviderCard
                 key={provider.id}
                 provider={{
@@ -239,17 +304,44 @@ export default function FindProvidersPage() {
                   isAvailable: provider.isAvailable,
                   verifiedAt: provider.verifiedAt,
                   averageRating: provider.averageRating ?? undefined,
-                  distance: provider.distance / 1000, // Convert to km
+                  distance: provider.distance / 1000,
                   services: provider.services.map((s) => ({
+                    id: s.id,
+                    serviceTypeId: s.serviceTypeId,
                     name: s.name,
                     hourlyRate: s.hourlyRate,
                   })),
                 }}
                 showDistance={true}
+                onBook={isUser && provider.isAvailable ? () => handleBookProvider(provider) : undefined}
               />
             ))}
           </SimpleGrid>
         </>
+      )}
+
+      {/* Booking Modal */}
+      {selectedProvider && (
+        <BookingModal
+          opened={bookingModalOpen}
+          onClose={() => {
+            setBookingModalOpen(false);
+            setSelectedProvider(null);
+          }}
+          provider={{
+            id: selectedProvider.id,
+            name: selectedProvider.name,
+            isAvailable: selectedProvider.isAvailable,
+            verifiedAt: selectedProvider.verifiedAt,
+            services: selectedProvider.services.map((s) => ({
+              id: s.id,
+              serviceTypeId: s.serviceTypeId,
+              name: s.name,
+              hourlyRate: s.hourlyRate,
+            })),
+          }}
+          userLocation={location}
+        />
       )}
     </Stack>
   );

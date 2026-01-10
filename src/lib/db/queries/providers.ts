@@ -31,6 +31,7 @@ export interface NearbyProvider {
   distance: number; // in meters
   services: Array<{
     id: string;
+    serviceTypeId: string;
     name: string;
     hourlyRate: string | null;
   }>;
@@ -111,6 +112,7 @@ export async function findProvidersNearby(
       .select({
         providerId: providerServices.providerId,
         serviceId: providerServices.id,
+        serviceTypeId: providerServices.serviceTypeId,
         serviceName: serviceTypes.name,
         hourlyRate: providerServices.hourlyRate,
       })
@@ -136,6 +138,7 @@ export async function findProvidersNearby(
       .select({
         providerId: providerServices.providerId,
         serviceId: providerServices.id,
+        serviceTypeId: providerServices.serviceTypeId,
         serviceName: serviceTypes.name,
         hourlyRate: providerServices.hourlyRate,
       })
@@ -147,12 +150,13 @@ export async function findProvidersNearby(
   // Group services by provider
   const servicesByProvider = new Map<
     string,
-    Array<{ id: string; name: string; hourlyRate: string | null }>
+    Array<{ id: string; serviceTypeId: string; name: string; hourlyRate: string | null }>
   >();
   for (const service of servicesQuery) {
     const existing = servicesByProvider.get(service.providerId) || [];
     existing.push({
       id: service.serviceId,
+      serviceTypeId: service.serviceTypeId,
       name: service.serviceName,
       hourlyRate: service.hourlyRate,
     });
