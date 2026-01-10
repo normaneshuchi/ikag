@@ -137,15 +137,8 @@ async function seed() {
   console.log("🌱 Starting database seed...\n");
 
   try {
-    // Check if data already exists (skip seeding if so)
-    const existingUsers = await db.select().from(users).limit(1);
-    if (existingUsers.length > 0) {
-      console.log("⏭️  Database already seeded, skipping...");
-      console.log("   (Use --force flag to reseed: npx tsx src/db/seed.ts --force)");
-      process.exit(0);
-    }
-
     const forceReseed = process.argv.includes("--force");
+    
     if (forceReseed) {
       // Clear existing data (order matters due to foreign keys)
       console.log("🧹 Force flag detected, clearing existing data...");
@@ -159,75 +152,95 @@ async function seed() {
       await db.delete(serviceTypes);
     }
 
-    // Seed service types
-    console.log("📦 Creating service types...");
-    const createdServices = await db
-      .insert(serviceTypes)
-      .values(demoServices.map((s) => ({ ...s, isActive: true })))
-      .returning();
-    console.log(`   Created ${createdServices.length} service types`);
+    // Check existing data in each table
+    const existingServices = await db.select().from(serviceTypes).limit(1);
+    const existingUsers = await db.select().from(users).limit(1);
+    const existingProviders = await db.select().from(providerProfiles).limit(1);
 
-    // Seed users
-    console.log("👤 Creating demo users...");
+    // Seed service types (if empty)
+    let createdServices;
+    if (existingServices.length > 0) {
+      console.log("⏭️  Service types already exist, skipping...");
+      createdServices = await db.select().from(serviceTypes);
+    } else {
+      console.log("📦 Creating service types...");
+      createdServices = await db
+        .insert(serviceTypes)
+        .values(demoServices.map((s) => ({ ...s, isActive: true })))
+        .returning();
+      console.log(`   Created ${createdServices.length} service types`);
+    }
+
+    // Seed users (if empty)
+    let createdUsers;
     const hashedPassword = await hashPassword(DEMO_PASSWORD);
     
-    const createdUsers = await db
-      .insert(users)
-      .values(
-        demoUsers.map((u) => ({
-          email: u.email,
-          name: u.name,
-          role: u.role,
-          emailVerified: true,
-        }))
-      )
-      .returning();
-
-    // Create accounts for each user (for better-auth)
-    for (const user of createdUsers) {
-      await db.insert(accounts).values({
-        id: randomUUID().replace(/-/g, ""),
-        userId: user.id,
-        accountId: user.id,
-        providerId: "credential",
-        password: hashedPassword,
-      });
-    }
-    console.log(`   Created ${createdUsers.length} users`);
-
-    // Create provider profiles - 3 providers per location
-    console.log("🏪 Creating provider profiles...");
-    const adminUser = createdUsers.find((u) => u.email === "admin@ikag.test");
-    let providerCount = 0;
-    const providerEmails: string[] = [];
-
-    // Distribute providers across all locations
-    // Each location gets 3 different service providers
-    for (let locIdx = 0; locIdx < demoLocations.length; locIdx++) {
-      const location = demoLocations[locIdx];
-      
-      // Pick 3 different providers for this location
-      // Rotate through templates to ensure variety
-      const providersForLocation = [
-        providerTemplates[(locIdx * 3) % providerTemplates.length],
-        providerTemplates[(locIdx * 3 + 1) % providerTemplates.length],
-        providerTemplates[(locIdx * 3 + 2) % providerTemplates.length],
-      ];
-
-      for (let pIdx = 0; pIdx < providersForLocation.length; pIdx++) {
-        const template = providersForLocation[pIdx];
-        const providerEmail = `${template.firstName.toLowerCase()}.${template.lastName.toLowerCase()}.${location.name.toLowerCase().replace(/\s+/g, "")}@ikag.test`;
-        const providerName = `${template.firstName} ${template.lastName}`;
-
-        // Create user
-        const [providerUser] = await db
-          .insert(users)
-          .values({
-            email: providerEmail,
-            name: providerName,
-            role: "provider",
+    if (existingUsers.length > 0) {
+      console.log("⏭️  Users already exist, skipping...");
+      createdUsers = await db.select().from(users);
+    } else {
+      console.log("👤 Creating demo users...");
+      createdUsers = await db
+        .insert(users)
+        .values(
+          demoUsers.map((u) => ({
+            email: u.email,
+            name: u.name,
+            role: u.role,
             emailVerified: true,
-          })
+          }))
+        )
+        .returning();
+
+      // Create accounts for each user (for better-auth)
+      for (const user of createdUsers) {
+        await db.insert(accounts).values({
+          id: randomUUID().replace(/-/g, ""),
+          userId: user.id,
+          accountId: user.id,
+          providerId: "credential",
+          password: hashedPassword,
+        });
+      }
+      console.log(`   Created ${createdUsers.length} users`);
+    }
+
+    // Create provider profiles (if empty)
+    if (existingProviders.length > 0) {
+      console.log("⏭️  Provider profiles already exist, skipping...");
+    } else {
+      console.log("🏪 Creating provider profiles...");
+      const adminUser = createdUsers.find((u) => u.email === "admin@ikag.test");
+      let providerCount = 0;
+      const providerEmails: string[] = [];
+
+      // Distribute providers across all locations
+      // Each location gets 3 different service providers
+      for (let locIdx = 0; locIdx < demoLocations.length; locIdx++) {
+        const location = demoLocations[locIdx];
+        
+        // Pick 3 different providers for this location
+        // Rotate through templates to ensure variety
+        const providersForLocation = [
+          providerTemplates[(locIdx * 3) % providerTemplates.length],
+          providerTemplates[(locIdx * 3 + 1) % providerTemplates.length],
+          providerTemplates[(locIdx * 3 + 2) % providerTemplates.length],
+        ];
+
+        for (let pIdx = 0; pIdx < providersForLocation.length; pIdx++) {
+          const template = providersForLocation[pIdx];
+          const providerEmail = `${template.firstName.toLowerCase()}.${template.lastName.toLowerCase()}.${location.name.toLowerCase().replace(/\s+/g, "")}@ikag.test`;
+          const providerName = `${template.firstName} ${template.lastName}`;
+
+          // Create user
+          const [providerUser] = await db
+            .insert(users)
+            .values({
+              email: providerEmail,
+              name: providerName,
+              role: "provider",
+              emailVerified: true,
+            })
           .returning();
 
         // Create account for the provider
@@ -277,6 +290,18 @@ async function seed() {
       }
     }
     console.log(`   Created ${providerCount} provider profiles across ${demoLocations.length} locations`);
+    
+      console.log("\n📋 Provider accounts created:");
+      console.log("─".repeat(60));
+      console.log(`   ${providerCount} provider accounts (email format: firstname.lastname.location@ikag.test)`);
+      console.log("   Example provider emails:");
+      providerEmails.slice(0, 5).forEach(email => console.log(`     - ${email}`));
+      if (providerCount > 5) {
+        console.log(`     ... and ${providerCount - 5} more`);
+      }
+      console.log(`   All providers use password: ${DEMO_PASSWORD}`);
+      console.log(`   Note: ~20% of providers are set as unavailable, ~12% are unverified`);
+    }
 
     console.log("\n✅ Seed completed successfully!\n");
     console.log("Demo accounts:");
@@ -287,12 +312,6 @@ async function seed() {
       console.log(`| ${user.email.padEnd(34)} | ${DEMO_PASSWORD.padEnd(10)} | ${user.role.padEnd(8)} |`);
     }
     console.log("─".repeat(60));
-    console.log(`\nPlus ${providerCount} provider accounts (email format: firstname.lastname.location@ikag.test)`);
-    console.log("Example provider emails:");
-    providerEmails.slice(0, 5).forEach(email => console.log(`  - ${email}`));
-    console.log(`  ... and ${providerCount - 5} more`);
-    console.log(`\nAll providers use password: ${DEMO_PASSWORD}`);
-    console.log(`Note: ~20% of providers are set as unavailable, ~12% are unverified`);
   } catch (error) {
     console.error("❌ Seed failed:", error);
     process.exit(1);
