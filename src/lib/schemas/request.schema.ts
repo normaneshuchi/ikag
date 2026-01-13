@@ -9,6 +9,10 @@ export const createRequestSchema = z.object({
   longitude: z.number().min(-180).max(180),
   address: z.string().optional(),
   scheduledAt: z.string().datetime().optional(),
+  // For admin: create request on behalf of a user
+  userId: z.string().uuid("Invalid user ID").optional(),
+  // For provider: create self-service request
+  isSelfService: z.boolean().optional(),
 });
 
 export type CreateRequestInput = z.infer<typeof createRequestSchema>;
