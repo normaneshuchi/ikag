@@ -30,6 +30,7 @@ import {
   IconClipboardList,
   IconShieldCheck,
   IconMapPin,
+  IconBuilding,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { authClient, useSession, getUserRole, type UserRole } from "@/lib/auth-client";
@@ -45,11 +46,13 @@ const navItems: Record<UserRole, Array<{ label: string; href: string; icon: type
     { label: "Dashboard", href: "/dashboard", icon: IconHome },
     { label: "My Profile", href: "/dashboard/profile", icon: IconUser },
     { label: "Service Requests", href: "/dashboard/requests", icon: IconClipboardList },
+    { label: "Agencies", href: "/dashboard/agencies", icon: IconBuilding },
   ],
   admin: [
     { label: "Dashboard", href: "/dashboard", icon: IconHome },
     { label: "Service Types", href: "/dashboard/services", icon: IconBriefcase },
     { label: "Providers", href: "/dashboard/providers", icon: IconUsers },
+    { label: "Agencies", href: "/dashboard/agencies", icon: IconBuilding },
     { label: "Verifications", href: "/dashboard/verifications", icon: IconShieldCheck },
   ],
 };

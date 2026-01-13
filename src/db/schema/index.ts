@@ -4,4 +4,6 @@ export * from "./services";
 export * from "./providers";
 export * from "./requests";
 export * from "./reviews";
+export * from "./agencies";
+export * from "./availability";
 export * from "./relations";

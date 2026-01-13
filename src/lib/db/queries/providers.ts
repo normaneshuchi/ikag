@@ -4,6 +4,8 @@ import {
   providerServices,
   users,
   serviceTypes,
+  agencies,
+  agencyServices,
 } from "@/db/schema";
 import { eq, and, isNotNull, sql, inArray } from "drizzle-orm";
 
@@ -286,4 +288,278 @@ export async function revokeProviderVerification(providerId: string) {
     })
     .where(eq(providerProfiles.id, providerId))
     .returning();
+}
+
+// ============================================================================
+// Agency Search Functions
+// ============================================================================
+
+export interface NearbyAgency {
+  id: string;
+  type: "agency";
+  name: string;
+  logo: string | null;
+  description: string | null;
+  isActive: boolean;
+  verifiedAt: Date | null;
+  distance: number;
+  memberCount: number;
+  services: Array<{
+    id: string;
+    serviceTypeId: string;
+    name: string;
+    hourlyRate: string | null;
+  }>;
+}
+
+interface FindAgenciesNearbyOptions {
+  latitude: number;
+  longitude: number;
+  radiusMeters?: number;
+  serviceTypeId?: string;
+  verifiedOnly?: boolean;
+  limit?: number;
+}
+
+/**
+ * Find agencies within a radius using PostGIS ST_DWithin
+ */
+export async function findAgenciesNearby(
+  options: FindAgenciesNearbyOptions
+): Promise<NearbyAgency[]> {
+  const {
+    latitude,
+    longitude,
+    radiusMeters = 10000,
+    serviceTypeId,
+    verifiedOnly = true,
+    limit = 20,
+  } = options;
+
+  // Build conditions
+  const conditions = [];
+
+  conditions.push(eq(agencies.isActive, true));
+
+  if (verifiedOnly) {
+    conditions.push(isNotNull(agencies.verifiedAt));
+  }
+
+  // PostGIS spatial query
+  conditions.push(
+    sql`ST_DWithin(
+      ${agencies.location}::geography,
+      ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
+      ${radiusMeters}
+    )`
+  );
+
+  // Query agencies
+  const agenciesQuery = await db
+    .select({
+      id: agencies.id,
+      name: agencies.name,
+      logo: agencies.logo,
+      description: agencies.description,
+      isActive: agencies.isActive,
+      verifiedAt: agencies.verifiedAt,
+      distance: sql<number>`ST_Distance(
+        ${agencies.location}::geography,
+        ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+      )`.as("distance"),
+      memberCount: sql<number>`(
+        SELECT COUNT(*) FROM agency_members 
+        WHERE agency_members.agency_id = ${agencies.id} 
+        AND agency_members.is_active = true
+      )`.as("member_count"),
+    })
+    .from(agencies)
+    .where(and(...conditions))
+    .orderBy(sql`distance`)
+    .limit(limit);
+
+  if (agenciesQuery.length === 0) {
+    return [];
+  }
+
+  // Get agency IDs
+  const agencyIds = agenciesQuery.map((a) => a.id);
+
+  // Get services for all agencies
+  let servicesQuery;
+  if (serviceTypeId) {
+    servicesQuery = await db
+      .select({
+        agencyId: agencyServices.agencyId,
+        serviceId: agencyServices.id,
+        serviceTypeId: agencyServices.serviceTypeId,
+        serviceName: serviceTypes.name,
+        hourlyRate: agencyServices.hourlyRate,
+      })
+      .from(agencyServices)
+      .innerJoin(serviceTypes, eq(agencyServices.serviceTypeId, serviceTypes.id))
+      .where(
+        and(
+          inArray(agencyServices.agencyId, agencyIds),
+          eq(agencyServices.serviceTypeId, serviceTypeId),
+          eq(agencyServices.isActive, true)
+        )
+      );
+
+    // Filter out agencies that don't offer this service
+    const validAgencyIds = new Set(servicesQuery.map((s) => s.agencyId));
+    agenciesQuery.splice(
+      0,
+      agenciesQuery.length,
+      ...agenciesQuery.filter((a) => validAgencyIds.has(a.id))
+    );
+  } else {
+    servicesQuery = await db
+      .select({
+        agencyId: agencyServices.agencyId,
+        serviceId: agencyServices.id,
+        serviceTypeId: agencyServices.serviceTypeId,
+        serviceName: serviceTypes.name,
+        hourlyRate: agencyServices.hourlyRate,
+      })
+      .from(agencyServices)
+      .innerJoin(serviceTypes, eq(agencyServices.serviceTypeId, serviceTypes.id))
+      .where(
+        and(
+          inArray(agencyServices.agencyId, agencyIds),
+          eq(agencyServices.isActive, true)
+        )
+      );
+  }
+
+  // Group services by agency
+  const servicesByAgency = new Map<
+    string,
+    Array<{ id: string; serviceTypeId: string; name: string; hourlyRate: string | null }>
+  >();
+  for (const service of servicesQuery) {
+    const existing = servicesByAgency.get(service.agencyId) || [];
+    existing.push({
+      id: service.serviceId,
+      serviceTypeId: service.serviceTypeId,
+      name: service.serviceName,
+      hourlyRate: service.hourlyRate,
+    });
+    servicesByAgency.set(service.agencyId, existing);
+  }
+
+  return agenciesQuery.map((agency) => ({
+    id: agency.id,
+    type: "agency" as const,
+    name: agency.name,
+    logo: agency.logo,
+    description: agency.description,
+    isActive: agency.isActive,
+    verifiedAt: agency.verifiedAt,
+    distance: agency.distance,
+    memberCount: Number(agency.memberCount),
+    services: servicesByAgency.get(agency.id) || [],
+  }));
+}
+
+// ============================================================================
+// Combined Search (Individuals + Agencies)
+// ============================================================================
+
+export type ProviderType = "individual" | "agency" | "all";
+
+export interface CombinedSearchResult {
+  id: string;
+  type: "individual" | "agency";
+  name: string;
+  image: string | null;
+  description: string | null;
+  isAvailable: boolean;
+  verifiedAt: Date | null;
+  distance: number;
+  memberCount?: number;
+  averageRating?: string | null;
+  services: Array<{
+    id: string;
+    serviceTypeId: string;
+    name: string;
+    hourlyRate: string | null;
+  }>;
+}
+
+interface CombinedSearchOptions {
+  latitude: number;
+  longitude: number;
+  radiusMeters?: number;
+  serviceTypeId?: string;
+  verifiedOnly?: boolean;
+  availableOnly?: boolean;
+  providerType?: ProviderType;
+  limit?: number;
+}
+
+/**
+ * Combined search for both individual providers and agencies
+ */
+export async function findProvidersAndAgencies(
+  options: CombinedSearchOptions
+): Promise<CombinedSearchResult[]> {
+  const {
+    providerType = "all",
+    limit = 40,
+    ...searchOptions
+  } = options;
+
+  const results: CombinedSearchResult[] = [];
+
+  // Search for individual providers
+  if (providerType === "all" || providerType === "individual") {
+    const providers = await findProvidersNearby({
+      ...searchOptions,
+      limit: providerType === "all" ? Math.ceil(limit / 2) : limit,
+    });
+
+    results.push(
+      ...providers.map((p) => ({
+        id: p.id,
+        type: "individual" as const,
+        name: p.name,
+        image: p.image,
+        description: p.bio,
+        isAvailable: p.isAvailable,
+        verifiedAt: p.verifiedAt,
+        distance: p.distance,
+        averageRating: p.averageRating,
+        services: p.services,
+      }))
+    );
+  }
+
+  // Search for agencies
+  if (providerType === "all" || providerType === "agency") {
+    const agencyResults = await findAgenciesNearby({
+      ...searchOptions,
+      limit: providerType === "all" ? Math.ceil(limit / 2) : limit,
+    });
+
+    results.push(
+      ...agencyResults.map((a) => ({
+        id: a.id,
+        type: "agency" as const,
+        name: a.name,
+        image: a.logo,
+        description: a.description,
+        isAvailable: a.isActive,
+        verifiedAt: a.verifiedAt,
+        distance: a.distance,
+        memberCount: a.memberCount,
+        services: a.services,
+      }))
+    );
+  }
+
+  // Sort combined results by distance
+  results.sort((a, b) => a.distance - b.distance);
+
+  return results.slice(0, limit);
 }

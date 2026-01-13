@@ -17,13 +17,16 @@ import {
   TextInput,
   Button,
   Switch,
+  SegmentedControl,
 } from "@mantine/core";
-import { IconMapPin, IconAlertCircle, IconSearch, IconCurrentLocation } from "@tabler/icons-react";
+import { IconMapPin, IconAlertCircle, IconSearch, IconCurrentLocation, IconUser, IconBuilding, IconUsers } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { ProviderCard } from "@/components/ProviderCard";
 import { BookingModal } from "@/components/BookingModal";
 import { useProviderStream } from "@/hooks/useProviderStream";
 import { getUserRole, useSession } from "@/lib/auth-client";
+
+type ProviderType = "all" | "individual" | "agency";
 
 interface ServiceType {
   id: string;
@@ -33,13 +36,17 @@ interface ServiceType {
 
 interface Provider {
   id: string;
-  userId: string;
+  userId?: string;
+  type?: "individual" | "agency";
   name: string;
-  bio: string | null;
+  bio?: string | null;
+  description?: string | null;
+  image?: string | null;
   isAvailable: boolean;
   verifiedAt: Date | null;
-  averageRating: string | null;
+  averageRating?: string | null;
   distance: number;
+  memberCount?: number;
   services: {
     id: string;
     serviceTypeId: string;
@@ -59,12 +66,14 @@ async function fetchProviders(params: {
   lng?: number;
   radiusKm?: number;
   serviceTypeId?: string;
+  providerType?: ProviderType;
 }): Promise<Provider[]> {
   const searchParams = new URLSearchParams();
   if (params.lat) searchParams.set("lat", params.lat.toString());
   if (params.lng) searchParams.set("lng", params.lng.toString());
   if (params.radiusKm) searchParams.set("radius", (params.radiusKm * 1000).toString()); // Convert to meters
   if (params.serviceTypeId) searchParams.set("serviceTypeId", params.serviceTypeId);
+  if (params.providerType) searchParams.set("type", params.providerType);
 
   const res = await fetch(`/api/providers?${searchParams.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch providers");
@@ -82,6 +91,7 @@ export default function FindProvidersPage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(true);
+  const [providerType, setProviderType] = useState<ProviderType>("all");
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -100,13 +110,14 @@ export default function FindProvidersPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["providers", location?.lat, location?.lng, radiusKm, serviceTypeId],
+    queryKey: ["providers", location?.lat, location?.lng, radiusKm, serviceTypeId, providerType],
     queryFn: () =>
       fetchProviders({
         lat: location?.lat,
         lng: location?.lng,
         radiusKm,
         serviceTypeId: serviceTypeId || undefined,
+        providerType,
       }),
     enabled: !!location,
   });
@@ -238,6 +249,37 @@ export default function FindProvidersPage() {
                 </div>
               </Group>
 
+              <div>
+                <Text size="sm" fw={500} mb="xs">
+                  Provider Type
+                </Text>
+                <SegmentedControl
+                  value={providerType}
+                  onChange={(value) => setProviderType(value as ProviderType)}
+                  data={[
+                    { value: "all", label: (
+                      <Center style={{ gap: 6 }}>
+                        <IconUsers size={16} />
+                        <span>All</span>
+                      </Center>
+                    )},
+                    { value: "individual", label: (
+                      <Center style={{ gap: 6 }}>
+                        <IconUser size={16} />
+                        <span>Individuals</span>
+                      </Center>
+                    )},
+                    { value: "agency", label: (
+                      <Center style={{ gap: 6 }}>
+                        <IconBuilding size={16} />
+                        <span>Agencies</span>
+                      </Center>
+                    )},
+                  ]}
+                  fullWidth
+                />
+              </div>
+
               <Group>
                 <Switch
                   label="Verified only"
@@ -291,7 +333,7 @@ export default function FindProvidersPage() {
       {location && !isLoading && filteredProviders.length > 0 && (
         <>
           <Text c="dimmed" size="sm">
-            Found {filteredProviders.length} provider{filteredProviders.length !== 1 ? "s" : ""} within {radiusKm}km
+            Found {filteredProviders.length} {providerType === "agency" ? "agenc" : "provider"}{filteredProviders.length !== 1 ? (providerType === "agency" ? "ies" : "s") : (providerType === "agency" ? "y" : "")} within {radiusKm}km
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {filteredProviders.map((provider) => (
@@ -300,7 +342,7 @@ export default function FindProvidersPage() {
                 provider={{
                   id: provider.id,
                   name: provider.name,
-                  bio: provider.bio,
+                  bio: provider.bio || provider.description,
                   isAvailable: provider.isAvailable,
                   verifiedAt: provider.verifiedAt,
                   averageRating: provider.averageRating ?? undefined,
@@ -311,6 +353,8 @@ export default function FindProvidersPage() {
                     name: s.name,
                     hourlyRate: s.hourlyRate,
                   })),
+                  type: provider.type,
+                  memberCount: provider.memberCount,
                 }}
                 showDistance={true}
                 onBook={isUser && provider.isAvailable ? () => handleBookProvider(provider) : undefined}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findProvidersNearby } from "@/lib/db/queries/providers";
+import { findProvidersNearby, findProvidersAndAgencies, ProviderType } from "@/lib/db/queries/providers";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const lng = searchParams.get("lng");
     const radius = searchParams.get("radius");
     const serviceTypeId = searchParams.get("serviceTypeId");
+    const providerType = searchParams.get("type") as ProviderType | null;
 
     if (!lat || !lng) {
       return NextResponse.json({ error: "Location required" }, { status: 400 });
@@ -21,6 +22,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
     }
 
+    // If type is specified, use combined search
+    if (providerType) {
+      const results = await findProvidersAndAgencies({
+        latitude,
+        longitude,
+        radiusMeters,
+        serviceTypeId: serviceTypeId || undefined,
+        providerType,
+      });
+      return NextResponse.json(results);
+    }
+
+    // Default: return only individual providers (backward compatibility)
     const providers = await findProvidersNearby({
       latitude,
       longitude,

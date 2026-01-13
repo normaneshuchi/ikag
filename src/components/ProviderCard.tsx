@@ -17,6 +17,8 @@ import {
   IconClock,
   IconCalendarEvent,
   IconUser,
+  IconBuilding,
+  IconUsers,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -32,6 +34,8 @@ interface ProviderCardProps {
     isAvailable: boolean;
     verifiedAt?: Date | string | null;
     distance?: number;
+    type?: "individual" | "agency";
+    memberCount?: number;
     services?: Array<{
       id?: string;
       serviceTypeId?: string;
@@ -46,14 +50,19 @@ interface ProviderCardProps {
 
 export function ProviderCard({
   provider,
-  onClick,
   onBook,
   showDistance = true,
 }: ProviderCardProps) {
   const isVerified = !!provider.verifiedAt;
+  const isAgency = provider.type === "agency";
   const rating = typeof provider.averageRating === "string" 
     ? parseFloat(provider.averageRating) 
     : provider.averageRating || 0;
+
+  // Determine link based on type
+  const profileLink = isAgency 
+    ? `/dashboard/agencies/${provider.id}` 
+    : `/dashboard/providers/${provider.id}`;
 
   return (
     <Card
@@ -74,9 +83,9 @@ export function ProviderCard({
             src={provider.image}
             size={56}
             radius="xl"
-            color="gold"
+            color={isAgency ? "blue" : "gold"}
           >
-            {provider.name.charAt(0).toUpperCase()}
+            {isAgency ? <IconBuilding size={28} /> : provider.name.charAt(0).toUpperCase()}
           </Avatar>
 
           <Stack gap={4}>
@@ -84,8 +93,20 @@ export function ProviderCard({
               <Text fw={600} size="lg">
                 {provider.name}
               </Text>
+              {isAgency && (
+                <Tooltip label="Agency">
+                  <Badge
+                    size="sm"
+                    color="blue"
+                    variant="light"
+                    leftSection={<IconBuilding size={12} />}
+                  >
+                    Agency
+                  </Badge>
+                </Tooltip>
+              )}
               {isVerified && (
-                <Tooltip label="Verified Provider">
+                <Tooltip label="Verified">
                   <Badge
                     size="sm"
                     color="green"
@@ -106,8 +127,16 @@ export function ProviderCard({
               </Text>
             </Group>
 
-            {/* Experience */}
-            {provider.yearsOfExperience !== undefined && (
+            {/* Experience or Member Count */}
+            {isAgency && provider.memberCount !== undefined && (
+              <Group gap={4}>
+                <IconUsers size={14} color="var(--mantine-color-dimmed)" />
+                <Text size="sm" c="dimmed">
+                  {provider.memberCount} team member{provider.memberCount !== 1 ? "s" : ""}
+                </Text>
+              </Group>
+            )}
+            {!isAgency && provider.yearsOfExperience !== undefined && (
               <Group gap={4}>
                 <IconClock size={14} color="var(--mantine-color-dimmed)" />
                 <Text size="sm" c="dimmed">
@@ -172,12 +201,12 @@ export function ProviderCard({
       <Group gap="xs" mt="md" grow>
         <Button
           component={Link}
-          href={`/dashboard/providers/${provider.id}`}
+          href={profileLink}
           variant="light"
-          color="gold"
-          leftSection={<IconUser size={16} />}
+          color={isAgency ? "blue" : "gold"}
+          leftSection={isAgency ? <IconBuilding size={16} /> : <IconUser size={16} />}
         >
-          View Profile
+          {isAgency ? "View Agency" : "View Profile"}
         </Button>
         {onBook && provider.isAvailable && (
           <Button

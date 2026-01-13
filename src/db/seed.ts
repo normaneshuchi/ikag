@@ -1,5 +1,11 @@
+// Load environment variables FIRST, before any other imports
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+// Now import everything else
 import { db } from "../lib/db";
-import { users, serviceTypes, providerProfiles, providerServices, sessions, accounts, verifications, serviceRequests } from "./schema";
+import { users, serviceTypes, providerProfiles, providerServices, sessions, accounts, verifications, serviceRequests, agencies, agencyMembers, agencyServices, agencyMemberServices } from "./schema";
 import { sql } from "drizzle-orm";
 import { scryptAsync } from "@noble/hashes/scrypt.js";
 import { bytesToHex, randomBytes } from "@noble/hashes/utils.js";
@@ -66,6 +72,77 @@ const demoServices = [
   { name: "Handyman", description: "General repairs and maintenance", icon: "🔨" },
   { name: "Moving", description: "Packing, loading, transportation", icon: "📦" },
   { name: "Pet Care", description: "Dog walking, pet sitting, grooming", icon: "🐕" },
+];
+
+// Demo agencies with owner information
+const demoAgencies = [
+  {
+    name: "CleanPro Kenya",
+    description: "Professional cleaning services for homes and offices. We specialize in deep cleaning, move-in/move-out cleaning, and regular maintenance cleaning.",
+    email: "info@cleanpro.ke",
+    phone: "+254700111222",
+    website: "https://cleanpro.ke",
+    services: ["Cleaning", "Gardening"],
+    location: { lat: -1.2921, lng: 36.8219, address: "Kenyatta Avenue, Nairobi CBD" },
+    verified: true,
+    owners: [
+      { firstName: "Alice", lastName: "Muthoni", role: "owner" as const },
+      { firstName: "Bob", lastName: "Odera", role: "manager" as const },
+    ],
+  },
+  {
+    name: "Nairobi Plumbing Masters",
+    description: "Expert plumbing and electrical services. 24/7 emergency repairs available. Licensed and insured professionals.",
+    email: "support@plumbingmasters.co.ke",
+    phone: "+254700333444",
+    website: "https://plumbingmasters.co.ke",
+    services: ["Plumbing", "Electrical", "Handyman"],
+    location: { lat: -1.2833, lng: 36.8167, address: "Westlands, Nairobi" },
+    verified: true,
+    owners: [
+      { firstName: "Tom", lastName: "Kimani", role: "owner" as const },
+    ],
+  },
+  {
+    name: "Green Gardens Ltd",
+    description: "Transform your outdoor space with our professional gardening and landscaping services. We handle everything from lawn care to complete garden makeovers.",
+    email: "hello@greengardens.co.ke",
+    phone: "+254700555666",
+    website: "https://greengardens.co.ke",
+    services: ["Gardening", "Painting"],
+    location: { lat: -1.3031, lng: 36.7073, address: "Karen, Nairobi" },
+    verified: true,
+    owners: [
+      { firstName: "Grace", lastName: "Wanjiru", role: "owner" as const },
+      { firstName: "Peter", lastName: "Ndung'u", role: "owner" as const },
+    ],
+  },
+  {
+    name: "Swift Movers",
+    description: "Reliable moving and relocation services across Kenya. We handle packing, transportation, and unpacking with care.",
+    email: "move@swiftmovers.ke",
+    phone: "+254700777888",
+    website: "https://swiftmovers.ke",
+    services: ["Moving", "Handyman"],
+    location: { lat: -1.3226, lng: 36.8431, address: "South B, Nairobi" },
+    verified: false,
+    owners: [
+      { firstName: "James", lastName: "Otieno", role: "owner" as const },
+    ],
+  },
+  {
+    name: "PetPals Nairobi",
+    description: "Loving care for your furry friends. Dog walking, pet sitting, and grooming services by certified pet care professionals.",
+    email: "woof@petpals.co.ke",
+    phone: "+254700999000",
+    services: ["Pet Care"],
+    location: { lat: -1.2856, lng: 36.7589, address: "Lavington, Nairobi" },
+    verified: true,
+    owners: [
+      { firstName: "Linda", lastName: "Achieng", role: "owner" as const },
+      { firstName: "Mark", lastName: "Wekesa", role: "manager" as const },
+    ],
+  },
 ];
 
 // Demo locations in Nairobi, Kenya
@@ -142,6 +219,10 @@ async function seed() {
     if (forceReseed) {
       // Clear existing data (order matters due to foreign keys)
       console.log("🧹 Force flag detected, clearing existing data...");
+      await db.delete(agencyMemberServices);
+      await db.delete(agencyServices);
+      await db.delete(agencyMembers);
+      await db.delete(agencies);
       await db.delete(serviceRequests);
       await db.delete(providerServices);
       await db.delete(providerProfiles);
@@ -301,6 +382,171 @@ async function seed() {
       }
       console.log(`   All providers use password: ${DEMO_PASSWORD}`);
       console.log(`   Note: ~20% of providers are set as unavailable, ~12% are unverified`);
+    }
+
+    // Seed agencies
+    const existingAgencies = await db.select().from(agencies).limit(1);
+    if (existingAgencies.length > 0) {
+      console.log("⏭️  Agencies already exist, skipping...");
+    } else {
+      console.log("\n🏢 Creating demo agencies...");
+      const adminUser = createdUsers.find((u) => u.email === "admin@ikag.test");
+      
+      // Get some provider users to add as agency members
+      const providerUsers = await db.select().from(users).where(sql`role = 'provider'`).limit(20);
+      
+      let agencyCount = 0;
+      const agencyOwnerEmails: string[] = [];
+      
+      for (const agencyData of demoAgencies) {
+        // Create users for all owners/managers defined in the agency
+        const agencyUserMembers: Array<{ user: typeof users.$inferSelect; role: "owner" | "manager" | "provider" }> = [];
+        
+        for (const ownerDef of agencyData.owners) {
+          const userEmail = `${ownerDef.firstName.toLowerCase()}.${ownerDef.lastName.toLowerCase().replace(/'/g, "")}@${agencyData.name.toLowerCase().replace(/\s+/g, "")}.ikag.test`;
+          const userName = `${ownerDef.firstName} ${ownerDef.lastName}`;
+          
+          const [agencyUser] = await db
+            .insert(users)
+            .values({
+              email: userEmail,
+              name: userName,
+              role: "provider",
+              emailVerified: true,
+            })
+            .returning();
+
+          // Create account for the user
+          await db.insert(accounts).values({
+            id: randomUUID().replace(/-/g, ""),
+            userId: agencyUser.id,
+            accountId: agencyUser.id,
+            providerId: "credential",
+            password: hashedPassword,
+          });
+
+          agencyUserMembers.push({ user: agencyUser, role: ownerDef.role });
+          agencyOwnerEmails.push(userEmail);
+        }
+
+        // The first owner is the primary owner
+        const primaryOwner = agencyUserMembers.find(m => m.role === "owner") || agencyUserMembers[0];
+
+        // Create agency with PostGIS location
+        const result = await db.execute(sql`
+          INSERT INTO agencies (name, description, email, phone, website, location, address, status, is_active, owner_id, verified_at, verified_by)
+          VALUES (
+            ${agencyData.name},
+            ${agencyData.description},
+            ${agencyData.email},
+            ${agencyData.phone || null},
+            ${agencyData.website || null},
+            ST_SetSRID(ST_MakePoint(${agencyData.location.lng}, ${agencyData.location.lat}), 4326)::geography,
+            ${agencyData.location.address},
+            ${agencyData.verified ? "verified" : "pending"},
+            ${true},
+            ${primaryOwner.user.id},
+            ${agencyData.verified ? new Date() : null},
+            ${agencyData.verified ? adminUser?.id || null : null}
+          )
+          RETURNING id
+        `);
+        const agency = (result as unknown as { rows: { id: string }[] }).rows[0];
+
+        // Add all agency owners/managers as members
+        const agencyMemberRecords: Array<typeof agencyMembers.$inferSelect> = [];
+        for (const memberData of agencyUserMembers) {
+          const [member] = await db.insert(agencyMembers).values({
+            agencyId: agency.id,
+            userId: memberData.user.id,
+            role: memberData.role,
+            isActive: true,
+          }).returning();
+          agencyMemberRecords.push(member);
+        }
+
+        // Add agency services
+        const matchingServices = createdServices.filter((s) => agencyData.services.includes(s.name));
+        for (const service of matchingServices) {
+          const hourlyRate = 800 + Math.floor(Math.random() * 2000); // KSh 800-2800/hr
+          await db.insert(agencyServices).values({
+            agencyId: agency.id,
+            serviceTypeId: service.id,
+            hourlyRate: hourlyRate.toString(),
+            description: `Professional ${service.name.toLowerCase()} services by ${agencyData.name}`,
+            isActive: true,
+          });
+
+          // Add services for all agency owners/managers
+          for (const memberRecord of agencyMemberRecords) {
+            await db.insert(agencyMemberServices).values({
+              agencyMemberId: memberRecord.id,
+              serviceTypeId: service.id,
+              hourlyRate: hourlyRate.toString(),
+            });
+          }
+        }
+
+        // Add some provider users as additional members (2-4 members per agency)
+        const memberCount = 2 + Math.floor(Math.random() * 3);
+        const shuffledProviders = [...providerUsers].sort(() => Math.random() - 0.5);
+        const selectedProviders = shuffledProviders.slice(0, memberCount);
+
+        for (let i = 0; i < selectedProviders.length; i++) {
+          const provider = selectedProviders[i];
+          
+          const [member] = await db.insert(agencyMembers).values({
+            agencyId: agency.id,
+            userId: provider.id,
+            role: "provider",
+            isActive: true,
+          }).returning();
+
+          // Add member services
+          for (const service of matchingServices) {
+            const hourlyRate = 700 + Math.floor(Math.random() * 1500);
+            await db.insert(agencyMemberServices).values({
+              agencyMemberId: member.id,
+              serviceTypeId: service.id,
+              hourlyRate: hourlyRate.toString(),
+            });
+          }
+        }
+
+        // Add 1-2 external members
+        const externalCount = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < externalCount; i++) {
+          const externalNames = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Williams"];
+          const [externalMember] = await db.insert(agencyMembers).values({
+            agencyId: agency.id,
+            isExternal: true,
+            externalName: externalNames[i % externalNames.length],
+            externalEmail: `external${i + 1}.${agencyData.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
+            externalPhone: `+254700${100000 + Math.floor(Math.random() * 900000)}`,
+            externalNotes: "External contractor",
+            role: "provider",
+            isActive: true,
+          }).returning();
+
+          // Add member services
+          for (const service of matchingServices) {
+            const hourlyRate = 600 + Math.floor(Math.random() * 1200);
+            await db.insert(agencyMemberServices).values({
+              agencyMemberId: externalMember.id,
+              serviceTypeId: service.id,
+              hourlyRate: hourlyRate.toString(),
+            });
+          }
+        }
+
+        agencyCount++;
+      }
+      console.log(`   Created ${agencyCount} agencies with members and services`);
+      
+      console.log("\n📋 Agency owner/manager accounts created:");
+      console.log("─".repeat(60));
+      agencyOwnerEmails.forEach(email => console.log(`     - ${email}`));
+      console.log(`   All agency accounts use password: ${DEMO_PASSWORD}`);
     }
 
     console.log("\n✅ Seed completed successfully!\n");

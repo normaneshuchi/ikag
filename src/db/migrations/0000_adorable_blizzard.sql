@@ -1,3 +1,7 @@
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+
 CREATE TYPE "public"."role" AS ENUM('admin', 'provider', 'user');--> statement-breakpoint
 CREATE TYPE "public"."request_status" AS ENUM('pending', 'matched', 'accepted', 'in_progress', 'completed', 'cancelled');--> statement-breakpoint
 CREATE TABLE "accounts" (

@@ -7,7 +7,8 @@ export const geography = customType<{
   driverData: string;
 }>({
   dataType() {
-    return "geography(Point, 4326)";
+    // Return without quotes - drizzle should pass this through directly
+    return `geography(Point,4326)`;
   },
   toDriver(value) {
     // PostGIS uses longitude, latitude order (x, y)

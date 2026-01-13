@@ -1,6 +1,6 @@
 "use client";
 
-import { createTheme, MantineColorsTuple, rem, DEFAULT_THEME } from "@mantine/core";
+import { createTheme, MantineColorsTuple, rem, MantineTheme } from "@mantine/core";
 
 // Gold color palette
 const gold: MantineColorsTuple = [
@@ -191,7 +191,7 @@ export const theme = createTheme({
       },
     },
     Title: {
-      styles: (theme: any, props: any) => ({
+      styles: (_theme: MantineTheme, props: { c?: string }) => ({
         root: {
           // Ensure titles have proper contrast
           color: props.c ? undefined : "var(--mantine-color-text)",
@@ -199,7 +199,7 @@ export const theme = createTheme({
       }),
     },
     Text: {
-      styles: (theme: any, props: any) => ({
+      styles: (_theme: MantineTheme, props: { c?: string }) => ({
         root: {
           // Ensure text has proper contrast unless explicitly colored
           color: props.c ? undefined : "var(--mantine-color-text)",
