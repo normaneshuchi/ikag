@@ -268,6 +268,54 @@ async function applySchema() {
       )
     `);
 
+    // Add missing columns to existing tables (for migration from older schema versions)
+    console.log("Adding missing columns to existing tables...");
+    const columnAdditions = [
+      // service_types columns
+      `ALTER TABLE "service_types" ADD COLUMN IF NOT EXISTS "default_estimated_duration" integer`,
+      `ALTER TABLE "service_types" ADD COLUMN IF NOT EXISTS "description" text`,
+      `ALTER TABLE "service_types" ADD COLUMN IF NOT EXISTS "icon" text`,
+      `ALTER TABLE "service_types" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL`,
+      
+      // service_requests columns (agency-related)
+      `ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "agency_id" uuid`,
+      `ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "agency_member_id" uuid`,
+      `ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "is_self_service" boolean DEFAULT false NOT NULL`,
+      `ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "estimated_end_time" timestamp with time zone`,
+      
+      // provider_profiles columns
+      `ALTER TABLE "provider_profiles" ADD COLUMN IF NOT EXISTS "latitude" numeric(10, 7)`,
+      `ALTER TABLE "provider_profiles" ADD COLUMN IF NOT EXISTS "longitude" numeric(10, 7)`,
+      `ALTER TABLE "provider_profiles" ADD COLUMN IF NOT EXISTS "address" text`,
+      `ALTER TABLE "provider_profiles" ADD COLUMN IF NOT EXISTS "service_radius" integer DEFAULT 10`,
+      
+      // agencies columns
+      `ALTER TABLE "agencies" ADD COLUMN IF NOT EXISTS "latitude" numeric(10, 7)`,
+      `ALTER TABLE "agencies" ADD COLUMN IF NOT EXISTS "longitude" numeric(10, 7)`,
+      `ALTER TABLE "agencies" ADD COLUMN IF NOT EXISTS "address" text`,
+      `ALTER TABLE "agencies" ADD COLUMN IF NOT EXISTS "service_radius" integer DEFAULT 10`,
+      `ALTER TABLE "agencies" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL`,
+      
+      // agency_members columns
+      `ALTER TABLE "agency_members" ADD COLUMN IF NOT EXISTS "is_external" boolean DEFAULT false NOT NULL`,
+      `ALTER TABLE "agency_members" ADD COLUMN IF NOT EXISTS "external_name" text`,
+      `ALTER TABLE "agency_members" ADD COLUMN IF NOT EXISTS "external_email" text`,
+      `ALTER TABLE "agency_members" ADD COLUMN IF NOT EXISTS "external_phone" text`,
+      `ALTER TABLE "agency_members" ADD COLUMN IF NOT EXISTS "external_notes" text`,
+    ];
+
+    for (const sql of columnAdditions) {
+      try {
+        await pool.query(sql);
+      } catch (e: unknown) {
+        const err = e as Error & { code?: string };
+        // 42701 = column already exists (shouldn't happen with IF NOT EXISTS but just in case)
+        if (err.code !== "42701") {
+          console.warn(`Warning adding column: ${err.message}`);
+        }
+      }
+    }
+
     // Add foreign key constraints
     console.log("Adding foreign key constraints...");
     const constraints = [
