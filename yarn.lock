@@ -151,18 +151,18 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
-"@better-auth/core@1.4.10":
-  version "1.4.10"
-  resolved "https://registry.npmjs.org/@better-auth/core/-/core-1.4.10.tgz#20b611998e3e0007c200f63e6ac072e3ef1dc89d"
-  integrity sha512-AThrfb6CpG80wqkanfrbN2/fGOYzhGladHFf3JhaWt/3/Vtf4h084T6PJLrDE7M/vCCGYvDI1DkvP3P1OB2HAg==
+"@better-auth/core@1.4.18":
+  version "1.4.18"
+  resolved "https://registry.yarnpkg.com/@better-auth/core/-/core-1.4.18.tgz#d424ccbf2e7754b7a7581c841dd64811b2700dd4"
+  integrity sha512-q+awYgC7nkLEBdx2sW0iJjkzgSHlIxGnOpsN1r/O1+a4m7osJNHtfK2mKJSL1I+GfNyIlxJF8WvD/NLuYMpmcg==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
-    zod "^4.1.12"
+    zod "^4.3.5"
 
-"@better-auth/telemetry@1.4.10":
-  version "1.4.10"
-  resolved "https://registry.npmjs.org/@better-auth/telemetry/-/telemetry-1.4.10.tgz#4b6df4f20b79ceb566fd13f53297c7a95d6d7dd4"
-  integrity sha512-Dq4XJX6EKsUu0h3jpRagX739p/VMOTcnJYWRrLtDYkqtZFg+sFiFsSWVcfapZoWpRSUGYX9iKwl6nDHn6Ju2oQ==
+"@better-auth/telemetry@1.4.18":
+  version "1.4.18"
+  resolved "https://registry.yarnpkg.com/@better-auth/telemetry/-/telemetry-1.4.18.tgz#9290df1b20c5376cb6820ae6704f682d7c676a4e"
+  integrity sha512-e5rDF8S4j3Um/0LIVATL2in9dL4lfO2fr2v1Wio4qTMRbfxqnUDTa+6SZtwdeJrbc4O+a3c+IyIpjG9Q/6GpfQ==
   dependencies:
     "@better-auth/utils" "0.3.0"
     "@better-fetch/fetch" "1.1.21"
@@ -1745,28 +1745,28 @@ bcryptjs@*, bcryptjs@^3.0.3:
   resolved "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz#4b93d6a398c48bfc9f32ee65d301174a8a8ea56f"
   integrity sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==
 
-better-auth@^1.4.10:
-  version "1.4.10"
-  resolved "https://registry.npmjs.org/better-auth/-/better-auth-1.4.10.tgz#7bad5b28626e21bf087409fca05b284c6de6bf68"
-  integrity sha512-0kqwEBJLe8eyFzbUspRG/htOriCf9uMLlnpe34dlIJGdmDfPuQISd4shShvUrvIVhPxsY1dSTXdXPLpqISYOYg==
+better-auth@^1.4.15:
+  version "1.4.18"
+  resolved "https://registry.yarnpkg.com/better-auth/-/better-auth-1.4.18.tgz#460cfa3f71d2da9ffcbfc1ad4d87977a4d51b5d5"
+  integrity sha512-bnyifLWBPcYVltH3RhS7CM62MoelEqC6Q+GnZwfiDWNfepXoQZBjEvn4urcERC7NTKgKq5zNBM8rvPvRBa6xcg==
   dependencies:
-    "@better-auth/core" "1.4.10"
-    "@better-auth/telemetry" "1.4.10"
+    "@better-auth/core" "1.4.18"
+    "@better-auth/telemetry" "1.4.18"
     "@better-auth/utils" "0.3.0"
     "@better-fetch/fetch" "1.1.21"
     "@noble/ciphers" "^2.0.0"
     "@noble/hashes" "^2.0.0"
-    better-call "1.1.7"
+    better-call "1.1.8"
     defu "^6.1.4"
     jose "^6.1.0"
     kysely "^0.28.5"
     nanostores "^1.0.1"
-    zod "^4.1.12"
+    zod "^4.3.5"
 
-better-call@1.1.7:
-  version "1.1.7"
-  resolved "https://registry.npmjs.org/better-call/-/better-call-1.1.7.tgz#87aa2d04e61ca7c27452e764ec839009eead5520"
-  integrity sha512-6gaJe1bBIEgVebQu/7q9saahVzvBsGaByEnE8aDVncZEDiJO7sdNB28ot9I6iXSbR25egGmmZ6aIURXyQHRraQ==
+better-call@1.1.8:
+  version "1.1.8"
+  resolved "https://registry.yarnpkg.com/better-call/-/better-call-1.1.8.tgz#5a2516369daf03f1be4293c8a8b9c65e91ab207f"
+  integrity sha512-XMQ2rs6FNXasGNfMjzbyroSwKwYbZ/T3IxruSS6U2MJRsSYh3wYtG3o6H00ZlKZ/C/UPOAD97tqgQJNsxyeTXw==
   dependencies:
     "@better-auth/utils" "^0.3.0"
     "@better-fetch/fetch" "^1.1.4"
@@ -4554,7 +4554,12 @@ zod@3:
   resolved "https://registry.npmjs.org/zod/-/zod-3.25.76.tgz#26841c3f6fd22a6a2760e7ccb719179768471e34"
   integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
 
-zod@4.3.5, "zod@^3.25.0 || ^4.0.0", zod@^4.1.12:
+zod@4.3.5, "zod@^3.25.0 || ^4.0.0":
   version "4.3.5"
   resolved "https://registry.npmjs.org/zod/-/zod-4.3.5.tgz#aeb269a6f9fc259b1212c348c7c5432aaa474d2a"
   integrity sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==
+
+zod@^4.3.5:
+  version "4.3.6"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.3.6.tgz#89c56e0aa7d2b05107d894412227087885ab112a"
+  integrity sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==
